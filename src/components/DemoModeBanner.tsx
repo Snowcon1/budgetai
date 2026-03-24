@@ -4,16 +4,14 @@ import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 
-interface Props {
-  onPress: () => void;
-}
-
-export default function DemoModeBanner({ onPress }: Props) {
+export default function DemoModeBanner() {
   const isDemo = useAppStore((s) => s.isDemo);
+  const exitDemo = useAppStore((s) => s.exitDemo);
+
   if (!isDemo) return null;
 
   return (
-    <TouchableOpacity style={styles.banner} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.banner} onPress={exitDemo} activeOpacity={0.85}>
       <Text style={styles.text}>⚡ Demo Mode — Connect real accounts →</Text>
     </TouchableOpacity>
   );

@@ -18,7 +18,6 @@ import DemoModeBanner from '../components/DemoModeBanner';
 interface Props {
   navigation: {
     navigate: (screen: string) => void;
-    replace: (screen: string) => void;
   };
 }
 
@@ -74,7 +73,7 @@ export default function SettingsScreen({ navigation }: Props) {
           style: 'destructive',
           onPress: () => {
             reset();
-            navigation.replace('Onboarding');
+            // RootNavigator automatically routes to Onboarding when user is cleared
           },
         },
       ]
@@ -83,7 +82,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => {}} />
+      <DemoModeBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.screenTitle}>Settings</Text>
 

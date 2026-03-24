@@ -16,15 +16,15 @@ import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
 
 interface Props {
-  navigation: { goBack: () => void };
+  navigation: { goBack: () => void; replace: (screen: string) => void };
 }
 
 export default function AuthScreen({ navigation }: Props) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [signUpSent, setSignUpSent] = useState(false);
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -37,12 +37,24 @@ export default function AuthScreen({ navigation }: Props) {
       password,
     });
     setLoading(false);
-    if (error) Alert.alert('Sign In Failed', error.message);
+    if (error) {
+      if (error.message.toLowerCase().includes('invalid login')) {
+        Alert.alert('Sign In Failed', 'Incorrect email or password. Please try again.');
+      } else if (error.message.toLowerCase().includes('email not confirmed')) {
+        Alert.alert(
+          'Email Not Confirmed',
+          'Please check your inbox and confirm your email address before signing in.'
+        );
+      } else {
+        Alert.alert('Sign In Failed', error.message);
+      }
+    }
+    // On success, onAuthStateChange in RootNavigator handles navigation automatically
   };
 
   const handleSignUp = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in all fields.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing Fields', 'Please enter your email and password.');
       return;
     }
     if (password.length < 6) {
@@ -50,14 +62,59 @@ export default function AuthScreen({ navigation }: Props) {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
-      options: { data: { name: name.trim() } },
     });
     setLoading(false);
-    if (error) Alert.alert('Sign Up Failed', error.message);
+
+    if (error) {
+      if (error.message.toLowerCase().includes('already registered')) {
+        Alert.alert('Email Taken', 'An account with this email already exists. Try signing in.');
+        setMode('signin');
+      } else {
+        Alert.alert('Sign Up Failed', error.message);
+      }
+      return;
+    }
+
+    // If email confirmation is disabled in Supabase, the session is created immediately
+    // and onAuthStateChange will fire → loadUserData → isNewUser → QuickSetupScreen.
+    // If confirmation is enabled, the user needs to verify their email first.
+    if (data.session) {
+      // Auto-confirmed — onAuthStateChange will handle the rest
+    } else {
+      // Confirmation email sent
+      setSignUpSent(true);
+    }
   };
+
+  if (signUpSent) {
+    return (
+      <View style={styles.confirmContainer}>
+        <Text style={styles.confirmEmoji}>📬</Text>
+        <Text style={styles.confirmTitle}>Check your email</Text>
+        <Text style={styles.confirmBody}>
+          We sent a confirmation link to{'\n'}
+          <Text style={styles.confirmEmail}>{email.trim().toLowerCase()}</Text>
+          {'\n\n'}Click the link in the email to activate your account, then come back to sign in.
+        </Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => {
+            setSignUpSent(false);
+            setMode('signin');
+            setPassword('');
+          }}
+        >
+          <Text style={styles.primaryButtonText}>Go to Sign In</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backText}>← Back to onboarding</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -91,19 +148,6 @@ export default function AuthScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
 
-          {mode === 'signup' && (
-            <TextInput
-              style={styles.input}
-              placeholder="Your name"
-              placeholderTextColor={colors.text.disabled}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              autoCorrect={false}
-              selectionColor={colors.accent.blue}
-            />
-          )}
-
           <TextInput
             style={styles.input}
             placeholder="Email address"
@@ -126,6 +170,10 @@ export default function AuthScreen({ navigation }: Props) {
             selectionColor={colors.accent.blue}
           />
 
+          {mode === 'signup' && (
+            <Text style={styles.passwordHint}>At least 6 characters</Text>
+          )}
+
           <TouchableOpacity
             style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
             onPress={mode === 'signin' ? handleSignIn : handleSignUp}
@@ -139,6 +187,12 @@ export default function AuthScreen({ navigation }: Props) {
               </Text>
             )}
           </TouchableOpacity>
+
+          {mode === 'signup' && (
+            <Text style={styles.noCardNote}>
+              No bank account or credit card required
+            </Text>
+          )}
         </View>
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -223,6 +277,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.default,
   },
+  passwordHint: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    marginBottom: 8,
+    marginTop: -4,
+    paddingLeft: 4,
+  },
   primaryButton: {
     backgroundColor: colors.accent.blue,
     borderRadius: 14,
@@ -243,6 +304,12 @@ const styles = StyleSheet.create({
     ...typography.subheading,
     fontWeight: '700',
   },
+  noCardNote: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    textAlign: 'center',
+    marginTop: 12,
+  },
   backButton: {
     marginTop: 28,
     padding: 8,
@@ -250,5 +317,35 @@ const styles = StyleSheet.create({
   backText: {
     ...typography.label,
     color: colors.text.muted,
+  },
+  // Confirmation screen
+  confirmContainer: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  confirmEmoji: {
+    fontSize: 52,
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    ...typography.title,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 16,
+  },
+  confirmBody: {
+    ...typography.body,
+    color: colors.text.muted,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  confirmEmail: {
+    color: colors.accent.blue,
+    fontWeight: '600',
   },
 });

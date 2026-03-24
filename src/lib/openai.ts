@@ -123,17 +123,70 @@ function getDemoResponse(userMessage: string): AIResponse {
   };
 }
 
+async function callOpenAIDirectly(
+  userMessage: string,
+  conversationHistory: ChatMessage[],
+  context: FinancialContext
+): Promise<AIResponse> {
+  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+  if (!apiKey || apiKey === 'your_openai_api_key') {
+    throw new Error('OpenAI API key not configured. Add EXPO_PUBLIC_OPENAI_API_KEY to your .env file.');
+  }
+
+  const contextMessage = buildContextMessage(context);
+
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: contextMessage },
+    ...conversationHistory.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages,
+      max_tokens: 500,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message ?? `OpenAI error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content: string = data.choices?.[0]?.message?.content ?? '';
+
+  // Try to parse as structured JSON (message + optional data_card)
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.message) return parsed as AIResponse;
+  } catch {
+    // Plain text response
+  }
+
+  return { message: content };
+}
+
 export async function sendChatMessage(
   userMessage: string,
   conversationHistory: ChatMessage[],
   context: FinancialContext,
   isDemo: boolean
 ): Promise<AIResponse> {
+  // Demo mode: call OpenAI directly from the client
   if (isDemo) {
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    return getDemoResponse(userMessage);
+    return callOpenAIDirectly(userMessage, conversationHistory, context);
   }
 
+  // Authenticated mode: go through the Supabase Edge Function (server-side key)
   try {
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;

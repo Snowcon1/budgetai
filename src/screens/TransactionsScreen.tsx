@@ -65,7 +65,7 @@ export default function TransactionsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
+      <DemoModeBanner />
 
       <View style={styles.monthSelector}>
         <TouchableOpacity style={styles.arrowButton} onPress={() => setSelectedMonth(subMonths(selectedMonth, 1))}>

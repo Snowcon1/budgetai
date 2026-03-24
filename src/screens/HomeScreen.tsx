@@ -30,7 +30,6 @@ export default function HomeScreen({ navigation }: Props) {
   } = useAppStore();
 
   const fabScale = useRef(new Animated.Value(1)).current;
-  const txnAnims = useRef<Animated.CompositeAnimation | null>(null);
 
   // FAB idle pulse
   useEffect(() => {
@@ -75,9 +74,18 @@ export default function HomeScreen({ navigation }: Props) {
 
   const recentTransactions = transactions.slice(0, 6);
 
-  // Create stagger anims for transactions
-  const txnFades = useRef(recentTransactions.map(() => new Animated.Value(0))).current;
-  const txnSlides = useRef(recentTransactions.map(() => new Animated.Value(12))).current;
+  // Create stagger anims for transactions — rebuild when count changes
+  const txnCount = recentTransactions.length;
+  const txnFadesRef = useRef<Animated.Value[]>([]);
+  const txnSlidesRef = useRef<Animated.Value[]>([]);
+
+  // Ensure arrays always match current count
+  if (txnFadesRef.current.length !== txnCount) {
+    txnFadesRef.current = recentTransactions.map(() => new Animated.Value(0));
+    txnSlidesRef.current = recentTransactions.map(() => new Animated.Value(12));
+  }
+  const txnFades = txnFadesRef.current;
+  const txnSlides = txnSlidesRef.current;
 
   useEffect(() => {
     Animated.stagger(
@@ -89,7 +97,7 @@ export default function HomeScreen({ navigation }: Props) {
         ])
       )
     ).start();
-  }, [transactions.length]);
+  }, [txnCount]);
 
   const handleFabPress = () => {
     Animated.sequence([
@@ -100,7 +108,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
+      <DemoModeBanner />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.greetingRow}>
           <View>

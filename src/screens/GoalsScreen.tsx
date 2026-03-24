@@ -81,7 +81,7 @@ export default function GoalsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
+      <DemoModeBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.totalLabel}>Total Saved</Text>

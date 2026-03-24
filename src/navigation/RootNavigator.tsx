@@ -9,6 +9,7 @@ import MainTabNavigator from './MainTabNavigator';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import AuthScreen from '../screens/AuthScreen';
 import DemoModeScreen from '../screens/DemoModeScreen';
+import QuickSetupScreen from '../screens/QuickSetupScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
 import GoalDetailScreen from '../screens/GoalDetailScreen';
 import ReceiptCaptureScreen from '../screens/ReceiptCaptureScreen';
@@ -17,6 +18,7 @@ import WeeklyRecapScreen from '../screens/WeeklyRecapScreen';
 type RootStackParamList = {
   Onboarding: undefined;
   Auth: undefined;
+  QuickSetup: undefined;
   PlaidConnect: undefined;
   MainTabs: undefined;
   TransactionDetail: { transactionId: string };
@@ -28,7 +30,7 @@ type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { user, loadUserData, reset } = useAppStore();
+  const { user, isNewUser, wantsAuth, loadUserData, reset } = useAppStore();
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -77,13 +79,26 @@ export default function RootNavigator() {
         cardStyle: { backgroundColor: colors.bg.primary },
       }}
     >
-      {!user ? (
-        <>
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="PlaidConnect" component={DemoModeScreen} options={{ title: 'Connect Accounts' }} />
-        </>
+      {!user && !isNewUser ? (
+        // Unauthenticated screens — if coming from demo, show Auth first so they land there directly
+        wantsAuth ? (
+          <>
+            <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="PlaidConnect" component={DemoModeScreen} options={{ title: 'Connect Accounts' }} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="PlaidConnect" component={DemoModeScreen} options={{ title: 'Connect Accounts' }} />
+          </>
+        )
+      ) : !user && isNewUser ? (
+        // New user — needs to complete profile setup
+        <Stack.Screen name="QuickSetup" component={QuickSetupScreen} options={{ headerShown: false }} />
       ) : (
+        // Authenticated screens
         <>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ headerShown: false }} />
           <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} options={{ title: 'Transaction' }} />

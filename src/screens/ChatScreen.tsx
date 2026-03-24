@@ -125,10 +125,12 @@ export default function ChatScreen({ navigation, route }: Props) {
   } = useAppStore();
 
   const hasMessages = chatHistory.length > 0;
+  const handleSendRef = useRef<(text?: string) => void>(() => {});
 
   useEffect(() => {
     if (route?.params?.preloadMessage) {
-      handleSend(route.params.preloadMessage);
+      // Use ref to avoid stale closure
+      handleSendRef.current(route.params.preloadMessage);
     }
   }, [route?.params?.preloadMessage]);
 
@@ -204,13 +206,16 @@ export default function ChatScreen({ navigation, route }: Props) {
     }
   };
 
+  // Keep ref in sync so the preloadMessage effect always calls the latest version
+  handleSendRef.current = handleSend;
+
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, [chatHistory.length, isTyping]);
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
+      <DemoModeBanner />
       <View style={styles.header}>
         <View style={styles.headerAvatar}>
           <Text style={styles.headerAvatarText}>⚡</Text>

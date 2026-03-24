@@ -80,7 +80,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   const handleDemo = () => {
     initDemo();
-    navigation.replace('MainTabs');
+    // RootNavigator automatically switches to MainTabs when user is set
   };
 
   const handleConnect = () => {

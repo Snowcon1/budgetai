@@ -1,16 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { Transaction, Account, Goal, ChatMessage, User } from '../types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+// Use localStorage on web (default), AsyncStorage on native
+const authStorage = Platform.OS === 'web' ? undefined : AsyncStorage;
+
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: authStorage as any,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });
 
@@ -177,10 +181,31 @@ export async function insertChatMessage(
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
+export async function createUserProfile(
+  userId: string,
+  profile: { name: string; monthly_income: number }
+): Promise<SupabaseResponse<User>> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({ id: userId, ...profile, is_demo: false })
+      .select()
+      .single();
+    if (error) return { data: null, error: error.message };
+    return { data: data as User, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
+  }
+}
+
 export async function getUserProfile(userId: string): Promise<SupabaseResponse<User>> {
   try {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (error) return { data: null, error: error.message };
+    // PGRST116 = no rows found → new user, not an error
+    if (error) {
+      if (error.code === 'PGRST116') return { data: null, error: null };
+      return { data: null, error: error.message };
+    }
     return { data: data as User, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };

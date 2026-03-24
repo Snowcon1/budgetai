@@ -25,6 +25,7 @@ import {
   insertChatMessage,
   getUserProfile,
   updateUserProfile,
+  createUserProfile,
 } from '../lib/supabase';
 
 interface AppState {
@@ -32,6 +33,7 @@ interface AppState {
   user: User | null;
   isDemo: boolean;
   isLoading: boolean;
+  isNewUser: boolean;
   transactions: Transaction[];
   accounts: Account[];
   goals: Goal[];
@@ -44,9 +46,13 @@ interface AppState {
 
   // Auth / init
   loadUserData: (userId: string) => Promise<void>;
+  completeSetup: (userId: string, name: string, income: number, useSampleData: boolean) => Promise<void>;
   initDemo: () => void;
+  exitDemo: () => void;
   initReal: () => void;
   reset: () => void;
+
+  wantsAuth: boolean;
 
   // Transactions
   addTransaction: (t: Transaction) => Promise<void>;
@@ -116,6 +122,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isDemo: false,
   isLoading: false,
+  isNewUser: false,
+  wantsAuth: false,
   transactions: [],
   accounts: [],
   goals: [],
@@ -144,7 +152,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const profile = profileRes.data;
     if (!profile) {
-      set({ isLoading: false });
+      if (profileRes.error) {
+        // Real DB error — still route to setup so the user isn't stuck
+        console.warn('Failed to load profile:', profileRes.error);
+      }
+      // New user (or profile error) — route to setup screen
+      set({ isLoading: false, userId, isNewUser: true });
       return;
     }
 
@@ -173,6 +186,60 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  completeSetup: async (userId: string, name: string, income: number, useSampleData: boolean) => {
+    set({ isLoading: true });
+
+    const { data: profile, error } = await createUserProfile(userId, {
+      name,
+      monthly_income: income,
+    });
+
+    if (error || !profile) {
+      set({ isLoading: false });
+      return;
+    }
+
+    if (useSampleData) {
+      // Seed the account with demo transactions/goals but use real profile
+      const score = calculateHealthScore(demoTransactions, demoGoals, demoSubscriptions, income);
+      const streak = calculateStreak(demoTransactions);
+      set({
+        userId,
+        user: profile,
+        isDemo: false,
+        isNewUser: false,
+        isLoading: false,
+        transactions: demoTransactions,
+        accounts: demoAccounts,
+        goals: demoGoals,
+        subscriptions: demoSubscriptions,
+        chatHistory: [],
+        healthScore: score,
+        currentStreak: streak,
+        isPlaidConnected: false,
+        weeklyChallenge: defaultWeeklyChallenge,
+      });
+    } else {
+      const score = calculateHealthScore([], [], [], income);
+      set({
+        userId,
+        user: profile,
+        isDemo: false,
+        isNewUser: false,
+        isLoading: false,
+        transactions: [],
+        accounts: [],
+        goals: [],
+        subscriptions: [],
+        chatHistory: [],
+        healthScore: score,
+        currentStreak: 0,
+        isPlaidConnected: false,
+        weeklyChallenge: defaultWeeklyChallenge,
+      });
+    }
+  },
+
   initDemo: () => {
     const transactions = demoTransactions;
     const score = calculateHealthScore(transactions, demoGoals, demoSubscriptions, demoUser.monthly_income);
@@ -195,6 +262,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  exitDemo: () => {
+    set({
+      userId: null,
+      user: null,
+      isDemo: false,
+      isLoading: false,
+      isNewUser: false,
+      wantsAuth: true,
+      transactions: [],
+      accounts: [],
+      goals: [],
+      subscriptions: [],
+      chatHistory: [],
+      healthScore: defaultHealthScore,
+      currentStreak: 0,
+      isPlaidConnected: false,
+      weeklyChallenge: defaultWeeklyChallenge,
+    });
+  },
+
   initReal: () => {
     set({ isDemo: false, isPlaidConnected: false });
   },
@@ -205,6 +292,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       user: null,
       isDemo: false,
       isLoading: false,
+      isNewUser: false,
+      wantsAuth: false,
       transactions: [],
       accounts: [],
       goals: [],

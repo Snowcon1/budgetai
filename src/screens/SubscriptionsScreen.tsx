@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
 import SubscriptionItem from '../components/SubscriptionItem';
@@ -24,7 +24,7 @@ export default function SubscriptionsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
+      <DemoModeBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.totalLabel}>Monthly Subscriptions</Text>
@@ -68,10 +68,10 @@ export default function SubscriptionsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   content: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 20,
   },
   header: {
@@ -79,46 +79,47 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   totalLabel: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   totalAmount: {
+    ...typography.hero,
     fontSize: 42,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.text.primary,
   },
   annualNote: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.secondary,
     marginTop: 4,
   },
   unusedSection: {
-    backgroundColor: colors.amber + '10',
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.accent.amberGlow,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.amber + '30',
+    borderColor: colors.accent.amber + '30',
     padding: 16,
     marginBottom: 24,
   },
   unusedHeader: {
-    fontSize: theme.fontSize.lg,
+    ...typography.heading,
     fontWeight: '700',
-    color: colors.amber,
+    color: colors.accent.amber,
     marginBottom: 4,
   },
   unusedSubtext: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.secondary,
     marginBottom: 12,
   },
   activeSection: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.heading,
+    color: colors.text.primary,
     marginBottom: 12,
   },
 });

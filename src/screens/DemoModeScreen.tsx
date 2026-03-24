@@ -13,7 +13,7 @@ export default function DemoModeScreen({ navigation }: Props) {
 
   const handleDemo = () => {
     initDemo();
-    navigation.replace('MainTabs');
+    // RootNavigator automatically switches to MainTabs when user is set
   };
 
   return (
