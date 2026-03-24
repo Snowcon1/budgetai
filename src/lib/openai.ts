@@ -57,81 +57,13 @@ interface AIResponse {
   };
 }
 
-const demoResponses: Record<string, AIResponse> = {
-  'can i afford': {
-    message:
-      "Based on your current spending patterns, you have about $680 left this month after typical expenses. If it's under $500, you can likely swing it — but it would slow down your Japan Trip savings by about 2 weeks. What are you thinking of buying?",
-  },
-  'why did i overspend': {
-    message:
-      "Looking at this month, DoorDash is your biggest culprit — you've spent $247 on delivery so far, which is 40% more than last month. Dining out overall is $412, making it your #1 category. Cutting DoorDash to 1-2x per week could save you ~$120/month.",
-    data_card: {
-      type: 'spending_chart',
-      data: {
-        categories: [
-          { name: 'Dining Out', amount: 412 },
-          { name: 'Groceries', amount: 340 },
-          { name: 'Shopping', amount: 195 },
-          { name: 'Gas', amount: 110 },
-          { name: 'Entertainment', amount: 52 },
-        ],
-      },
-    },
-  },
-  'help me save': {
-    message:
-      "For your Japan Trip, you need to save $212/month to hit your goal. Right now you're on pace at about $109/month. Here's my suggestion: redirect half your DoorDash budget ($120) to savings and you're golden. Want me to set up a spending challenge for this?",
-    data_card: {
-      type: 'goal_progress',
-      data: {
-        goals: [
-          { name: 'Japan Trip', current: 1530, target: 4500, monthly_needed: 212 },
-          { name: 'Emergency Fund', current: 4180, target: 10000, monthly_needed: 323 },
-          { name: 'New MacBook', current: 420, target: 1299, monthly_needed: 293 },
-        ],
-      },
-    },
-  },
-  'audit my subscriptions': {
-    message:
-      "You're spending $53.46/month on subscriptions. I flagged Planet Fitness ($24.99) as possibly unused — I don't see any gym-related activity in your transactions. Canceling it would save you almost $300/year. Everything else looks actively used.",
-    data_card: {
-      type: 'subscription_list',
-      data: {
-        subscriptions: [
-          { name: 'Planet Fitness', amount: 24.99, status: 'possibly_unused' },
-          { name: 'Netflix', amount: 15.49, status: 'active' },
-          { name: 'Spotify', amount: 9.99, status: 'active' },
-          { name: 'Apple iCloud', amount: 2.99, status: 'active' },
-        ],
-        total: 53.46,
-        potential_savings: 24.99,
-      },
-    },
-  },
-};
-
-function getDemoResponse(userMessage: string): AIResponse {
-  const lower = userMessage.toLowerCase();
-  for (const [key, response] of Object.entries(demoResponses)) {
-    if (lower.includes(key)) {
-      return response;
-    }
-  }
-  return {
-    message: `Based on your financial snapshot, you're doing okay but there's room to improve. Your health score is in the mid-60s — the biggest opportunity is cutting back on dining out (currently ~$400/month) and putting that toward your Japan Trip goal. You're earning $6,800/month and spending about 85% of it. Want me to dig into any specific area?`,
-  };
-}
-
-async function callOpenAIDirectly(
+async function callViaEdgeFunction(
   userMessage: string,
   conversationHistory: ChatMessage[],
   context: FinancialContext
 ): Promise<AIResponse> {
-  const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey || apiKey === 'your_openai_api_key') {
-    throw new Error('OpenAI API key not configured. Add EXPO_PUBLIC_OPENAI_API_KEY to your .env file.');
-  }
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) throw new Error('Supabase URL not configured.');
 
   const contextMessage = buildContextMessage(context);
 
@@ -142,26 +74,18 @@ async function callOpenAIDirectly(
     { role: 'user', content: userMessage },
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages,
-      max_tokens: 500,
-      temperature: 0.7,
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message ?? `OpenAI error: ${response.status}`);
+    throw new Error(data.error ?? `Edge function error: ${response.status}`);
   }
 
-  const data = await response.json();
   const content: string = data.choices?.[0]?.message?.content ?? '';
 
   // Try to parse as structured JSON (message + optional data_card)
@@ -181,47 +105,5 @@ export async function sendChatMessage(
   context: FinancialContext,
   isDemo: boolean
 ): Promise<AIResponse> {
-  // Demo mode: call OpenAI directly from the client
-  if (isDemo) {
-    return callOpenAIDirectly(userMessage, conversationHistory, context);
-  }
-
-  // Authenticated mode: go through the Supabase Edge Function (server-side key)
-  try {
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase not configured');
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseKey}`,
-        apikey: supabaseKey,
-      },
-      body: JSON.stringify({
-        userMessage,
-        conversationHistory: conversationHistory.slice(-20).map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-        context,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error ?? `Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
-    return data as AIResponse;
-  } catch (error) {
-    throw new Error(
-      `Chat failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-  }
+  return callViaEdgeFunction(userMessage, conversationHistory, context);
 }

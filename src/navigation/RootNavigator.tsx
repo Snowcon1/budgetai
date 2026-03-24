@@ -35,20 +35,18 @@ export default function RootNavigator() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Check for existing session on mount
-    supabase.auth.getSession().then(({ data: { session: existing } }) => {
-      setSession(existing);
-      if (existing) {
-        loadUserData(existing.user.id).finally(() => setAuthChecked(true));
-      } else {
-        setAuthChecked(true);
-      }
-    });
-
-    // Listen for sign in / sign out events
+    // INITIAL_SESSION fires once on subscription setup with the current session (or null).
+    // Using it as the single source of truth avoids duplicate loadUserData calls from
+    // both getSession() and onAuthStateChange firing SIGNED_IN simultaneously.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
-      if (event === 'SIGNED_IN' && newSession) {
+      if (event === 'INITIAL_SESSION') {
+        if (newSession) {
+          loadUserData(newSession.user.id).finally(() => setAuthChecked(true));
+        } else {
+          setAuthChecked(true);
+        }
+      } else if (event === 'SIGNED_IN' && newSession) {
         loadUserData(newSession.user.id);
       } else if (event === 'SIGNED_OUT') {
         reset();

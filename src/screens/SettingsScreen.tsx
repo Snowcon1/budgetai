@@ -137,21 +137,30 @@ export default function SettingsScreen({ navigation }: Props) {
 
         <Text style={styles.sectionTitle}>Connected Accounts</Text>
         <View style={styles.card}>
-          {accounts.map((a) => (
-            <View key={a.id} style={styles.row}>
-              <View>
-                <Text style={styles.rowLabel}>{a.name}</Text>
-                <Text style={styles.rowMeta}>{a.institution} · {a.type}</Text>
-              </View>
-              <View style={styles.syncBadge}>
-                <Text style={styles.syncText}>Synced</Text>
-              </View>
+          {accounts.length > 0 ? (
+            <>
+              {accounts.map((a) => (
+                <View key={a.id} style={styles.row}>
+                  <View>
+                    <Text style={styles.rowLabel}>{a.name}</Text>
+                    <Text style={styles.rowMeta}>{a.institution} · {a.type}</Text>
+                  </View>
+                  <View style={styles.syncBadge}>
+                    <Text style={styles.syncText}>Synced</Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]}>
+                <Text style={styles.addAccountText}>+ Add Account</Text>
+                <Text style={styles.rowArrow}>→</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+              <Text style={styles.rowMeta}>Bank linking coming soon</Text>
+              <Text style={styles.comingSoonBadge}>Soon</Text>
             </View>
-          ))}
-          <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]}>
-            <Text style={styles.addAccountText}>+ Add Account</Text>
-            <Text style={styles.rowArrow}>→</Text>
-          </TouchableOpacity>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>Notifications</Text>
@@ -321,6 +330,15 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.accent.blue,
     fontWeight: '600',
+  },
+  comingSoonBadge: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   demoCard: {
     backgroundColor: colors.accent.amberGlow,

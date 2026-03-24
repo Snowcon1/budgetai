@@ -60,6 +60,13 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   data_card?: DataCard;
+  conversation_id?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  startedAt: string;
+  messages: ChatMessage[];
 }
 
 export interface DataCard {

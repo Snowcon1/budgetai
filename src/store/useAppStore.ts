@@ -6,6 +6,7 @@ import {
   Goal,
   Subscription,
   ChatMessage,
+  ChatSession,
   User,
   HealthScoreBreakdown,
   WeeklyChallengeData,
@@ -21,7 +22,7 @@ import {
   insertGoal,
   updateGoal as supabaseUpdateGoal,
   getAccounts,
-  getChatHistory,
+  getChatSessions,
   insertChatMessage,
   getUserProfile,
   updateUserProfile,
@@ -39,6 +40,8 @@ interface AppState {
   goals: Goal[];
   subscriptions: Subscription[];
   chatHistory: ChatMessage[];
+  chatSessions: ChatSession[];
+  currentConversationId: string | null;
   healthScore: HealthScoreBreakdown;
   currentStreak: number;
   weeklyChallenge: WeeklyChallengeData;
@@ -65,7 +68,7 @@ interface AppState {
 
   // Chat
   addChatMessage: (m: ChatMessage) => void;
-  clearChat: () => void;
+  startNewConversation: () => void;
 
   // User
   setUser: (u: User) => void;
@@ -117,6 +120,13 @@ function sortByDate(transactions: Transaction[]): Transaction[] {
   );
 }
 
+function generateId(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   userId: null,
   user: null,
@@ -129,6 +139,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   goals: [],
   subscriptions: [],
   chatHistory: [],
+  chatSessions: [],
+  currentConversationId: null,
   healthScore: defaultHealthScore,
   currentStreak: 0,
   weeklyChallenge: defaultWeeklyChallenge,
@@ -147,7 +159,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       getAccounts(userId),
       getTransactions(userId, from, to),
       getGoals(userId),
-      getChatHistory(userId),
+      getChatSessions(userId),
     ]);
 
     const profile = profileRes.data;
@@ -164,7 +176,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const transactions = transactionsRes.data ?? [];
     const goals = goalsRes.data ?? [];
     const accounts = accountsRes.data ?? [];
-    const chatHistory = chatRes.data ?? [];
+    const chatSessions = chatRes.data ?? [];
 
     const score = calculateHealthScore(transactions, goals, [], profile.monthly_income ?? 0);
     const streak = calculateStreak(transactions);
@@ -178,7 +190,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       accounts,
       goals,
       subscriptions: [],
-      chatHistory,
+      chatHistory: [],
+      chatSessions,
+      currentConversationId: null,
       healthScore: score,
       currentStreak: streak,
       isPlaidConnected: accounts.length > 0,
@@ -200,7 +214,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (useSampleData) {
-      // Seed the account with demo transactions/goals but use real profile
       const score = calculateHealthScore(demoTransactions, demoGoals, demoSubscriptions, income);
       const streak = calculateStreak(demoTransactions);
       set({
@@ -214,6 +227,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         goals: demoGoals,
         subscriptions: demoSubscriptions,
         chatHistory: [],
+        chatSessions: [],
+        currentConversationId: null,
         healthScore: score,
         currentStreak: streak,
         isPlaidConnected: false,
@@ -232,6 +247,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         goals: [],
         subscriptions: [],
         chatHistory: [],
+        chatSessions: [],
+        currentConversationId: null,
         healthScore: score,
         currentStreak: 0,
         isPlaidConnected: false,
@@ -255,6 +272,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       goals: demoGoals,
       subscriptions: demoSubscriptions,
       chatHistory: [],
+      chatSessions: [],
+      currentConversationId: null,
       healthScore: score,
       currentStreak: streak,
       isPlaidConnected: false,
@@ -275,6 +294,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       goals: [],
       subscriptions: [],
       chatHistory: [],
+      chatSessions: [],
+      currentConversationId: null,
       healthScore: defaultHealthScore,
       currentStreak: 0,
       isPlaidConnected: false,
@@ -299,6 +320,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       goals: [],
       subscriptions: [],
       chatHistory: [],
+      chatSessions: [],
+      currentConversationId: null,
       healthScore: defaultHealthScore,
       currentStreak: 0,
       isPlaidConnected: false,
@@ -399,19 +422,33 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ─── Chat ────────────────────────────────────────────────────────────────────
 
   addChatMessage: (m: ChatMessage) => {
-    set((state) => ({ chatHistory: [...state.chatHistory, m] }));
+    const { currentConversationId } = get();
+    const msgWithConv = { ...m, conversation_id: currentConversationId ?? undefined };
+    set((state) => ({ chatHistory: [...state.chatHistory, msgWithConv] }));
 
     const { isDemo, userId } = get();
     if (!isDemo && userId) {
-      const { id: _tempId, ...msgData } = m;
-      insertChatMessage({ ...msgData, user_id: userId }).catch(() => {
-        // Silent — chat history is already in local state
-      });
+      const { id: _tempId, ...msgData } = msgWithConv;
+      insertChatMessage({ ...msgData, user_id: userId }).catch(() => {});
     }
   },
 
-  clearChat: () => {
-    set({ chatHistory: [] });
+  startNewConversation: () => {
+    const { chatHistory, chatSessions, currentConversationId } = get();
+
+    // Archive current session if it had messages
+    let updatedSessions = chatSessions;
+    if (chatHistory.length > 0 && currentConversationId) {
+      const alreadySaved = chatSessions.some((s) => s.id === currentConversationId);
+      if (!alreadySaved) {
+        updatedSessions = [
+          { id: currentConversationId, startedAt: chatHistory[0].created_at, messages: chatHistory },
+          ...chatSessions,
+        ];
+      }
+    }
+
+    set({ chatHistory: [], chatSessions: updatedSessions, currentConversationId: generateId() });
   },
 
   // ─── User ────────────────────────────────────────────────────────────────────

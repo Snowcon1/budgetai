@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -9,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Modal,
 } from 'react-native';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
@@ -17,7 +19,8 @@ import ChatBubble from '../components/ChatBubble';
 import ChatSuggestions from '../components/ChatSuggestions';
 import DemoModeBanner from '../components/DemoModeBanner';
 import { sendChatMessage } from '../lib/openai';
-import { ChatMessage } from '../types';
+import { ChatMessage, ChatSession } from '../types';
+import { format } from 'date-fns';
 
 interface Props {
   navigation: { navigate: (screen: string) => void };
@@ -111,10 +114,14 @@ const typingStyles = StyleSheet.create({
 export default function ChatScreen({ navigation, route }: Props) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const {
     chatHistory,
+    chatSessions,
     addChatMessage,
+    startNewConversation,
     isDemo,
     accounts,
     transactions,
@@ -127,9 +134,15 @@ export default function ChatScreen({ navigation, route }: Props) {
   const hasMessages = chatHistory.length > 0;
   const handleSendRef = useRef<(text?: string) => void>(() => {});
 
+  // Start a fresh conversation each time this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      startNewConversation();
+    }, [])
+  );
+
   useEffect(() => {
     if (route?.params?.preloadMessage) {
-      // Use ref to avoid stale closure
       handleSendRef.current(route.params.preloadMessage);
     }
   }, [route?.params?.preloadMessage]);
@@ -220,11 +233,70 @@ export default function ChatScreen({ navigation, route }: Props) {
         <View style={styles.headerAvatar}>
           <Text style={styles.headerAvatarText}>⚡</Text>
         </View>
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.headerTitle}>Financial Coach</Text>
           <Text style={styles.headerSub}>Powered by GPT-4o</Text>
         </View>
+        {chatSessions.length > 0 && (
+          <TouchableOpacity style={styles.historyButton} onPress={() => setShowHistory(true)}>
+            <Text style={styles.historyIcon}>🕐</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* History Modal */}
+      <Modal visible={showHistory} transparent animationType="slide" onRequestClose={() => { setShowHistory(false); setSelectedSession(null); }}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setShowHistory(false); setSelectedSession(null); }}>
+          <View
+            style={styles.historySheet}
+            onStartShouldSetResponder={() => true}
+            // @ts-ignore
+            onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()}
+          >
+            <View style={styles.sheetHandle} />
+            {selectedSession ? (
+              <>
+                <View style={styles.sheetTitleRow}>
+                  <TouchableOpacity onPress={() => setSelectedSession(null)}>
+                    <Text style={styles.backButton}>← Back</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.sheetTitle}>{format(new Date(selectedSession.startedAt), 'MMM d, yyyy')}</Text>
+                  <View style={{ width: 60 }} />
+                </View>
+                <ScrollView style={styles.sessionScroll} showsVerticalScrollIndicator={false}>
+                  {selectedSession.messages.map((msg) => (
+                    <View key={msg.id} style={[styles.historyBubble, msg.role === 'user' ? styles.historyBubbleUser : styles.historyBubbleAI]}>
+                      <Text style={[styles.historyBubbleText, msg.role === 'user' ? styles.historyBubbleTextUser : styles.historyBubbleTextAI]}>
+                        {msg.content}
+                      </Text>
+                    </View>
+                  ))}
+                  <View style={{ height: 20 }} />
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <Text style={styles.sheetTitle}>Chat History</Text>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {chatSessions.map((session) => {
+                    const preview = session.messages.find((m) => m.role === 'user')?.content ?? '';
+                    return (
+                      <TouchableOpacity key={session.id} style={styles.sessionRow} onPress={() => setSelectedSession(session)}>
+                        <View style={styles.sessionInfo}>
+                          <Text style={styles.sessionDate}>{format(new Date(session.startedAt), 'MMM d, yyyy · h:mm a')}</Text>
+                          <Text style={styles.sessionPreview} numberOfLines={2}>{preview}</Text>
+                        </View>
+                        <Text style={styles.sessionCount}>{session.messages.length} msgs</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <View style={{ height: 20 }} />
+                </ScrollView>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -297,6 +369,9 @@ const styles = StyleSheet.create({
   headerAvatarText: {
     fontSize: 18,
   },
+  headerText: {
+    flex: 1,
+  },
   headerTitle: {
     ...typography.heading,
     color: colors.text.primary,
@@ -304,6 +379,115 @@ const styles = StyleSheet.create({
   headerSub: {
     ...typography.caption,
     color: colors.text.muted,
+  },
+  historyButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.bg.surface,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyIcon: {
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  historySheet: {
+    backgroundColor: colors.bg.elevated,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 36,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderBottomWidth: 0,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border.default,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  sheetTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    ...typography.title,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    ...typography.label,
+    color: colors.accent.blue,
+    fontWeight: '600',
+    width: 60,
+  },
+  sessionScroll: {
+    maxHeight: 400,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.subtle,
+    gap: 12,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionDate: {
+    ...typography.caption,
+    color: colors.text.muted,
+    marginBottom: 3,
+  },
+  sessionPreview: {
+    ...typography.label,
+    color: colors.text.primary,
+  },
+  sessionCount: {
+    ...typography.caption,
+    color: colors.text.disabled,
+  },
+  historyBubble: {
+    maxWidth: '80%',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+  },
+  historyBubbleUser: {
+    alignSelf: 'flex-end',
+    backgroundColor: colors.accent.blue,
+    borderBottomRightRadius: 4,
+  },
+  historyBubbleAI: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.bg.surface,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderBottomLeftRadius: 4,
+  },
+  historyBubbleText: {
+    ...typography.body,
+  },
+  historyBubbleTextUser: {
+    color: '#fff',
+  },
+  historyBubbleTextAI: {
+    color: colors.text.primary,
   },
   chatContent: {
     paddingHorizontal: 20,

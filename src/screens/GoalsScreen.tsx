@@ -106,7 +106,12 @@ export default function GoalsScreen({ navigation }: Props) {
 
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddModal(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={styles.modalSheet}
+            onStartShouldSetResponder={() => true}
+            // @ts-ignore – web only: stop click from bubbling to the overlay
+            onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()}
+          >
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>New Goal</Text>
 

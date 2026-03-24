@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { Transaction, Account, Goal, ChatMessage, User } from '../types';
+import { Transaction, Account, Goal, ChatMessage, ChatSession, User } from '../types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -153,15 +153,29 @@ export async function upsertAccount(
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
-export async function getChatHistory(userId: string): Promise<SupabaseResponse<ChatMessage[]>> {
+export async function getChatSessions(userId: string): Promise<SupabaseResponse<ChatSession[]>> {
   try {
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
       .eq('user_id', userId)
+      .not('conversation_id', 'is', null)
       .order('created_at', { ascending: true });
     if (error) return { data: null, error: error.message };
-    return { data: data as ChatMessage[], error: null };
+
+    const messages = data as ChatMessage[];
+    const sessionMap = new Map<string, ChatMessage[]>();
+    messages.forEach((m) => {
+      if (!m.conversation_id) return;
+      const existing = sessionMap.get(m.conversation_id) ?? [];
+      sessionMap.set(m.conversation_id, [...existing, m]);
+    });
+
+    const sessions: ChatSession[] = Array.from(sessionMap.entries())
+      .map(([id, msgs]) => ({ id, startedAt: msgs[0].created_at, messages: msgs }))
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+    return { data: sessions, error: null };
   } catch (e) {
     return { data: null, error: e instanceof Error ? e.message : 'Unknown error' };
   }

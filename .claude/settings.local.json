@@ -13,7 +13,14 @@
       "Bash(node -e \"console.log\\(require.resolve\\(''@expo/cli/build/src/start/index.js''\\)\\)\")",
       "Bash(node -e \"console.log\\(require.resolve\\(''expo/bin/cli''\\)\\)\")",
       "Bash(node -e \"console.log\\(require.resolve\\(''expo/bin/cli.js''\\)\\)\")",
-      "Bash(node -e \"const pkg = require\\(''./node_modules/expo/package.json''\\); console.log\\(pkg.version\\)\")"
+      "Bash(node -e \"const pkg = require\\(''./node_modules/expo/package.json''\\); console.log\\(pkg.version\\)\")",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__get_logs",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__list_tables",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__execute_sql",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__apply_migration",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__list_projects",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__list_edge_functions",
+      "mcp__05b89d2b-ed35-4b8e-a30b-71402461b243__deploy_edge_function"
     ]
   }
 }

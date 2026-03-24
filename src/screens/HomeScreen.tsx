@@ -153,33 +153,45 @@ export default function HomeScreen({ navigation }: Props) {
 
         {currentStreak > 0 && <StreakCard streak={currentStreak} />}
 
-        <WeeklyChallenge
-          challenge={weeklyChallenge}
-          onOptIn={() => {}}
-          onSkip={() => {}}
-        />
+        {transactions.length > 0 && (
+          <WeeklyChallenge
+            challenge={weeklyChallenge}
+            onOptIn={() => {}}
+            onSkip={() => {}}
+          />
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
-              <Text style={styles.seeAll}>See All →</Text>
-            </TouchableOpacity>
+            {recentTransactions.length > 0 && (
+              <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
+                <Text style={styles.seeAll}>See All →</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {recentTransactions.map((t, i) => (
-            <Animated.View
-              key={t.id}
-              style={{
-                opacity: txnFades[i] ?? 1,
-                transform: [{ translateY: txnSlides[i] ?? 0 }],
-              }}
-            >
-              <TransactionItem
-                transaction={t}
-                onPress={() => navigation.navigate('TransactionDetail', { transactionId: t.id })}
-              />
-            </Animated.View>
-          ))}
+          {recentTransactions.length === 0 ? (
+            <View style={styles.emptyTxn}>
+              <Text style={styles.emptyTxnIcon}>📋</Text>
+              <Text style={styles.emptyTxnText}>No transactions yet</Text>
+              <Text style={styles.emptyTxnSub}>Tap 📷 to add your first receipt</Text>
+            </View>
+          ) : (
+            recentTransactions.map((t, i) => (
+              <Animated.View
+                key={t.id}
+                style={{
+                  opacity: txnFades[i] ?? 1,
+                  transform: [{ translateY: txnSlides[i] ?? 0 }],
+                }}
+              >
+                <TransactionItem
+                  transaction={t}
+                  onPress={() => navigation.navigate('TransactionDetail', { transactionId: t.id })}
+                />
+              </Animated.View>
+            ))
+          )}
         </View>
 
         <View style={{ height: 100 }} />
@@ -249,6 +261,23 @@ const styles = StyleSheet.create({
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  emptyTxn: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyTxnIcon: {
+    fontSize: 32,
+    marginBottom: 10,
+  },
+  emptyTxnText: {
+    ...typography.subheading,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  emptyTxnSub: {
+    ...typography.caption,
+    color: colors.text.muted,
   },
   fabWrapper: {
     position: 'absolute',
