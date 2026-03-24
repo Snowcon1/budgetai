@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { WeeklyChallengeData } from '../types';
 
 interface Props {
@@ -29,14 +29,10 @@ export default function WeeklyChallenge({ challenge, onOptIn, onSkip }: Props) {
         </View>
       )}
       {challenge.opted_in && !challenge.completed && (
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Challenge accepted! Keep it up.</Text>
-        </View>
+        <Text style={styles.progressText}>Challenge accepted! Keep it up.</Text>
       )}
       {challenge.completed && (
-        <View style={styles.completedContainer}>
-          <Text style={styles.completedText}>🎉 Challenge completed!</Text>
-        </View>
+        <Text style={styles.completedText}>🎉 Challenge completed!</Text>
       )}
     </View>
   );
@@ -44,12 +40,14 @@ export default function WeeklyChallenge({ challenge, onOptIn, onSkip }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border.default,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent.blue,
   },
   header: {
     flexDirection: 'row',
@@ -57,19 +55,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headerIcon: {
-    fontSize: 16,
+    fontSize: 14,
     marginRight: 6,
   },
   headerText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
-    color: colors.accentBlueLight,
+    ...typography.label,
+    color: colors.accent.blueLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   description: {
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
-    fontWeight: '500',
-    marginBottom: 12,
+    ...typography.subheading,
+    color: colors.text.primary,
+    marginBottom: 14,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -78,42 +76,34 @@ const styles = StyleSheet.create({
   skipButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: theme.borderRadius.sm,
+    borderColor: colors.border.default,
+    borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
   },
   skipText: {
-    color: colors.textSecondary,
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
+    ...typography.label,
+    color: colors.text.muted,
   },
   optInButton: {
     flex: 2,
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
   },
   optInText: {
+    ...typography.label,
     color: '#fff',
-    fontSize: theme.fontSize.sm,
     fontWeight: '600',
   },
-  progressContainer: {
-    paddingVertical: 4,
-  },
   progressText: {
-    color: colors.accentBlueLight,
-    fontSize: theme.fontSize.sm,
-    fontWeight: '500',
-  },
-  completedContainer: {
-    paddingVertical: 4,
+    ...typography.label,
+    color: colors.accent.blueLight,
   },
   completedText: {
-    color: colors.green,
-    fontSize: theme.fontSize.sm,
+    ...typography.label,
+    color: colors.accent.green,
     fontWeight: '600',
   },
 });

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { differenceInDays, format } from 'date-fns';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
 import MilestoneModal from '../components/MilestoneModal';
@@ -15,6 +15,8 @@ interface Props {
   route: { params: { goalId: string } };
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 function getGoalEmoji(name: string): string {
   const lower = name.toLowerCase();
   if (lower.includes('japan') || lower.includes('trip') || lower.includes('travel')) return '✈️';
@@ -25,10 +27,14 @@ function getGoalEmoji(name: string): string {
 
 export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
-  const { goals, transactions } = useAppStore();
+  const { goals } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneText, setMilestoneText] = useState('');
+
+  const ringAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const [displayPercent, setDisplayPercent] = useState(0);
 
   if (!goal) {
     return (
@@ -49,20 +55,54 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - Math.min(progress, 1));
 
-  const ringColor = percentage >= 75 ? colors.green : percentage >= 50 ? colors.accentBlue : colors.amber;
+  const ringColor =
+    percentage >= 75 ? colors.accent.green : percentage >= 50 ? colors.accent.blue : colors.accent.amber;
+  const ringGlow =
+    percentage >= 75 ? colors.accent.greenGlow : percentage >= 50 ? colors.accent.blueGlow : colors.accent.amberGlow;
 
   useEffect(() => {
+    // Animate ring
+    Animated.timing(ringAnim, {
+      toValue: Math.min(progress, 1),
+      duration: 1200,
+      useNativeDriver: false,
+    }).start();
+
+    // Count-up display
+    const duration = 1200;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const prog = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - prog, 3);
+      setDisplayPercent(Math.round(eased * percentage));
+      if (prog < 1) setTimeout(tick, 16);
+    };
+    tick();
+
+    // Milestone check + bounce
     const milestones = [25, 50, 75, 100];
     for (const m of milestones) {
       if (percentage >= m && percentage < m + 5) {
-        setMilestoneText(`${m}% Complete!`);
-        setShowMilestone(true);
+        setTimeout(() => {
+          Animated.sequence([
+            Animated.spring(scaleAnim, { toValue: 1.05, useNativeDriver: true, tension: 120, friction: 7 }),
+            Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, tension: 120, friction: 7 }),
+            Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 7 }),
+          ]).start();
+          setMilestoneText(`${m}% Complete!`);
+          setShowMilestone(true);
+        }, 1400);
         break;
       }
     }
   }, [percentage]);
+
+  const strokeDashoffset = ringAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0],
+  });
 
   return (
     <View style={styles.container}>
@@ -70,26 +110,40 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
         <View style={styles.headerSection}>
           <Text style={styles.emoji}>{getGoalEmoji(goal.name)}</Text>
           <Text style={styles.goalName}>{goal.name}</Text>
+          <Text style={styles.goalType}>{goal.type === 'debt' ? 'Debt Payoff' : 'Savings Goal'}</Text>
         </View>
 
-        <View style={styles.ringContainer}>
-          <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-            <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.border} strokeWidth={strokeWidth} fill="none" />
-            <Circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke={ringColor}
-              strokeWidth={strokeWidth}
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-            />
-          </Svg>
-          <View style={styles.ringCenter}>
-            <Text style={[styles.ringPercent, { color: ringColor }]}>{percentage}%</Text>
-          </View>
+        <View style={styles.ringWrapper}>
+          <View style={[styles.glowRing, { backgroundColor: ringGlow, shadowColor: ringColor, shadowOpacity: 0.5, shadowRadius: 20 }]} />
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <View style={styles.ringContainer}>
+              <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+                <Circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={colors.border.default}
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                />
+                <AnimatedCircle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={ringColor}
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                />
+              </Svg>
+              <View style={styles.ringCenter}>
+                <Text style={[styles.ringPercent, { color: ringColor }]}>{displayPercent}%</Text>
+                <Text style={styles.ringLabel}>complete</Text>
+              </View>
+            </View>
+          </Animated.View>
         </View>
 
         <View style={styles.amountRow}>
@@ -108,10 +162,10 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Monthly Savings Needed</Text>
-            <Text style={[styles.statValue, { color: colors.amber }]}>{formatCurrency(monthlyNeeded)}</Text>
+            <Text style={[styles.statValue, { color: colors.accent.amber }]}>{formatCurrency(monthlyNeeded)}</Text>
           </View>
           <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.statLabel}>Remaining</Text>
+            <Text style={styles.statLabel}>Still Needed</Text>
             <Text style={styles.statValue}>{formatCurrency(remaining)}</Text>
           </View>
         </View>
@@ -143,10 +197,10 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   content: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 20,
   },
   headerSection: {
@@ -154,28 +208,51 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emoji: {
-    fontSize: 40,
+    fontSize: 44,
     marginBottom: 8,
   },
   goalName: {
-    fontSize: theme.fontSize.xxl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
+    textAlign: 'center',
   },
-  ringContainer: {
+  goalType: {
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  ringWrapper: {
     alignSelf: 'center',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 16,
   },
+  glowRing: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    elevation: 0,
+  },
+  ringContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   ringCenter: {
     position: 'absolute',
     alignItems: 'center',
   },
   ringPercent: {
-    fontSize: theme.fontSize.xxxl,
-    fontWeight: '700',
+    ...typography.hero,
+  },
+  ringLabel: {
+    ...typography.caption,
+    color: colors.text.muted,
+    marginTop: 2,
   },
   amountRow: {
     flexDirection: 'row',
@@ -184,50 +261,57 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   currentAmount: {
-    fontSize: theme.fontSize.xxl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
   },
   targetAmount: {
-    fontSize: theme.fontSize.lg,
-    color: colors.textSecondary,
+    ...typography.heading,
+    color: colors.text.muted,
   },
   statsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
-    padding: 16,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
+    padding: 4,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.subtle,
   },
   statLabel: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.muted,
   },
   statValue: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
+    ...typography.label,
+    color: colors.text.primary,
     fontWeight: '600',
   },
   coachButton: {
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: colors.accent.blue,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   coachButtonText: {
     color: '#fff',
-    fontSize: theme.fontSize.md,
+    ...typography.subheading,
     fontWeight: '600',
   },
   errorText: {
-    color: colors.textSecondary,
-    fontSize: theme.fontSize.md,
+    ...typography.body,
+    color: colors.text.muted,
     textAlign: 'center',
     marginTop: 40,
   },

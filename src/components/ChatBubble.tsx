@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { ChatMessage, DataCard } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -59,7 +59,7 @@ function DataCardView({ card }: { card: DataCard }) {
       <View style={dataStyles.container}>
         {subs.map((s) => (
           <View key={s.name} style={dataStyles.subRow}>
-            <Text style={[dataStyles.subName, s.status === 'possibly_unused' && { color: colors.amber }]}>
+            <Text style={[dataStyles.subName, s.status === 'possibly_unused' && { color: colors.accent.amber }]}>
               {s.status === 'possibly_unused' ? '⚠️ ' : '✓ '}{s.name}
             </Text>
             <Text style={dataStyles.subAmount}>{formatCurrency(s.amount)}/mo</Text>
@@ -78,9 +78,24 @@ function DataCardView({ card }: { card: DataCard }) {
 
 export default function ChatBubble({ message }: Props) {
   const isUser = message.role === 'user';
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 9 }),
+    ]).start();
+  }, []);
 
   return (
-    <View style={[styles.row, isUser ? styles.userRow : styles.assistantRow]}>
+    <Animated.View
+      style={[
+        styles.row,
+        isUser ? styles.userRow : styles.assistantRow,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+    >
       {!isUser && (
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>⚡</Text>
@@ -90,7 +105,7 @@ export default function ChatBubble({ message }: Props) {
         <Text style={[styles.text, isUser && styles.userText]}>{message.content}</Text>
         {message.data_card && <DataCardView card={message.data_card} />}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -110,32 +125,35 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.accentBlue + '30',
+    backgroundColor: colors.accent.blueGlow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
     marginTop: 4,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '30',
   },
   avatarText: {
     fontSize: 14,
   },
   bubble: {
     maxWidth: '78%',
-    borderRadius: theme.borderRadius.card,
+    borderRadius: 16,
     padding: 14,
   },
   userBubble: {
-    backgroundColor: colors.accentBlue,
+    backgroundColor: colors.accent.blue,
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg.surface,
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   text: {
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
-    lineHeight: 22,
+    ...typography.body,
+    color: colors.text.primary,
   },
   userText: {
     color: '#fff',
@@ -145,8 +163,8 @@ const styles = StyleSheet.create({
 const dataStyles = StyleSheet.create({
   container: {
     marginTop: 12,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 10,
     padding: 12,
   },
   barRow: {
@@ -155,26 +173,26 @@ const dataStyles = StyleSheet.create({
     marginBottom: 8,
   },
   barLabel: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.secondary,
     width: 80,
   },
   barBg: {
     flex: 1,
-    height: 6,
-    backgroundColor: colors.border,
+    height: 5,
+    backgroundColor: colors.border.default,
     borderRadius: 3,
     marginHorizontal: 8,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: colors.accentBlue,
+    backgroundColor: colors.accent.blue,
     borderRadius: 3,
   },
   barAmount: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textPrimary,
+    ...typography.caption,
+    color: colors.text.primary,
     width: 55,
     textAlign: 'right',
     fontWeight: '600',
@@ -183,14 +201,14 @@ const dataStyles = StyleSheet.create({
     marginBottom: 10,
   },
   goalName: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
+    ...typography.label,
+    color: colors.text.primary,
     fontWeight: '600',
     marginBottom: 4,
   },
   goalMeta: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
     marginTop: 4,
   },
   subRow: {
@@ -198,28 +216,27 @@ const dataStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.default,
   },
   subName: {
-    fontSize: theme.fontSize.sm,
-    color: colors.green,
+    ...typography.label,
+    color: colors.accent.green,
   },
   subAmount: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
-    fontWeight: '500',
+    ...typography.label,
+    color: colors.text.primary,
   },
   subTotalRow: {
     marginTop: 8,
   },
   subTotal: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
+    ...typography.label,
+    color: colors.text.primary,
     fontWeight: '600',
   },
   subSavings: {
-    fontSize: theme.fontSize.xs,
-    color: colors.amber,
+    ...typography.caption,
+    color: colors.accent.amber,
     marginTop: 2,
   },
 });

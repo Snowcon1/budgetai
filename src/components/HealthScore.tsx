@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Animated as RNAnimated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { HealthScoreBreakdown } from '../types';
 
 interface Props {
@@ -13,6 +13,7 @@ const AnimatedCircle = RNAnimated.createAnimatedComponent(Circle);
 
 export default function HealthScore({ score }: Props) {
   const [showModal, setShowModal] = useState(false);
+  const [displayScore, setDisplayScore] = useState(0);
   const animValue = useRef(new RNAnimated.Value(0)).current;
 
   const size = 160;
@@ -20,16 +21,40 @@ export default function HealthScore({ score }: Props) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  const strokeColor =
+    score.total >= 70
+      ? colors.accent.green
+      : score.total >= 40
+      ? colors.accent.amber
+      : colors.accent.red;
+
+  const glowColor =
+    score.total >= 70
+      ? colors.accent.greenGlow
+      : score.total >= 40
+      ? colors.accent.amberGlow
+      : colors.accent.redGlow;
+
   useEffect(() => {
-    RNAnimated.spring(animValue, {
+    // Animate ring
+    RNAnimated.timing(animValue, {
       toValue: score.total / 100,
-      friction: 6,
-      tension: 40,
+      duration: 1200,
       useNativeDriver: false,
     }).start();
-  }, [score.total]);
 
-  const strokeColor = score.total >= 70 ? colors.green : score.total >= 40 ? colors.amber : colors.red;
+    // Count-up display score
+    const duration = 1200;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayScore(Math.round(eased * score.total));
+      if (progress < 1) setTimeout(tick, 16);
+    };
+    tick();
+  }, [score.total]);
 
   const strokeDashoffset = animValue.interpolate({
     inputRange: [0, 1],
@@ -46,13 +71,26 @@ export default function HealthScore({ score }: Props) {
   return (
     <>
       <TouchableOpacity style={styles.container} onPress={() => setShowModal(true)} activeOpacity={0.8}>
+        {/* Glow behind ring */}
+        <View
+          style={[
+            styles.glowRing,
+            {
+              backgroundColor: glowColor,
+              shadowColor: strokeColor,
+              shadowOpacity: 0.4,
+              shadowRadius: 20,
+              shadowOffset: { width: 0, height: 0 },
+            },
+          ]}
+        />
         <View style={styles.ringContainer}>
           <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
             <Circle
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke={colors.border}
+              stroke={colors.border.default}
               strokeWidth={strokeWidth}
               fill="none"
             />
@@ -69,8 +107,9 @@ export default function HealthScore({ score }: Props) {
             />
           </Svg>
           <View style={styles.scoreTextContainer}>
-            <Text style={[styles.scoreNumber, { color: strokeColor }]}>{score.total}</Text>
+            <Text style={[styles.scoreNumber, { color: strokeColor }]}>{displayScore}</Text>
             <Text style={styles.scoreLabel}>Health Score</Text>
+            <Text style={styles.scoreTap}>tap for details</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -111,6 +150,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 16,
   },
+  glowRing: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    elevation: 0,
+  },
   ringContainer: {
     position: 'relative',
     alignItems: 'center',
@@ -121,32 +167,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreNumber: {
-    fontSize: theme.fontSize.xxxl,
-    fontWeight: '700',
+    ...typography.hero,
   },
   scoreLabel: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: colors.text.muted,
     marginTop: 2,
+    letterSpacing: 0.3,
+  },
+  scoreTap: {
+    fontSize: 10,
+    color: colors.text.disabled,
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 340,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   modalTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.heading,
+    color: colors.text.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -159,10 +212,11 @@ const styles = StyleSheet.create({
   totalScore: {
     fontSize: 48,
     fontWeight: '700',
+    letterSpacing: -1,
   },
   totalLabel: {
-    fontSize: theme.fontSize.xl,
-    color: colors.textSecondary,
+    ...typography.title,
+    color: colors.text.muted,
     marginLeft: 4,
   },
   breakdownRow: {
@@ -171,25 +225,25 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   breakdownLabel: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.secondary,
     width: 130,
   },
   breakdownBarContainer: {
     flex: 1,
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: colors.border.default,
+    borderRadius: 3,
     marginHorizontal: 8,
     overflow: 'hidden',
   },
   breakdownBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   breakdownValue: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
+    ...typography.label,
+    color: colors.text.primary,
     width: 40,
     textAlign: 'right',
     fontWeight: '600',

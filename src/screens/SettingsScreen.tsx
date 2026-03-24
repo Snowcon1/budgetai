@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../lib/supabase';
 import DemoModeBanner from '../components/DemoModeBanner';
@@ -58,7 +58,6 @@ export default function SettingsScreen({ navigation }: Props) {
         style: 'destructive',
         onPress: async () => {
           await supabase.auth.signOut();
-          // RootNavigator's onAuthStateChange calls reset() automatically
         },
       },
     ]);
@@ -88,7 +87,6 @@ export default function SettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.screenTitle}>Settings</Text>
 
-        {/* Account Section */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
           <View style={styles.row}>
@@ -101,6 +99,7 @@ export default function SettingsScreen({ navigation }: Props) {
                   onChangeText={setNameInput}
                   onSubmitEditing={handleSaveName}
                   autoFocus
+                  selectionColor={colors.accent.blue}
                 />
                 <TouchableOpacity onPress={handleSaveName}>
                   <Text style={styles.saveText}>Save</Text>
@@ -112,7 +111,7 @@ export default function SettingsScreen({ navigation }: Props) {
               </TouchableOpacity>
             )}
           </View>
-          <View style={styles.row}>
+          <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <Text style={styles.rowLabel}>Monthly Income</Text>
             {editingIncome ? (
               <View style={styles.editRow}>
@@ -123,6 +122,7 @@ export default function SettingsScreen({ navigation }: Props) {
                   onSubmitEditing={handleSaveIncome}
                   keyboardType="numeric"
                   autoFocus
+                  selectionColor={colors.accent.blue}
                 />
                 <TouchableOpacity onPress={handleSaveIncome}>
                   <Text style={styles.saveText}>Save</Text>
@@ -136,7 +136,6 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {/* Connected Accounts */}
         <Text style={styles.sectionTitle}>Connected Accounts</Text>
         <View style={styles.card}>
           {accounts.map((a) => (
@@ -145,56 +144,37 @@ export default function SettingsScreen({ navigation }: Props) {
                 <Text style={styles.rowLabel}>{a.name}</Text>
                 <Text style={styles.rowMeta}>{a.institution} · {a.type}</Text>
               </View>
-              <Text style={styles.rowValue}>Synced</Text>
+              <View style={styles.syncBadge}>
+                <Text style={styles.syncText}>Synced</Text>
+              </View>
             </View>
           ))}
-          <TouchableOpacity style={styles.addAccountButton}>
+          <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]}>
             <Text style={styles.addAccountText}>+ Add Account</Text>
+            <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Notifications */}
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>
-          <View style={styles.switchRow}>
-            <Text style={styles.rowLabel}>Weekly Recap</Text>
-            <Switch
-              value={notifWeekly}
-              onValueChange={setNotifWeekly}
-              trackColor={{ false: colors.border, true: colors.accentBlue }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.rowLabel}>Goal Nudges</Text>
-            <Switch
-              value={notifGoals}
-              onValueChange={setNotifGoals}
-              trackColor={{ false: colors.border, true: colors.accentBlue }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.rowLabel}>Budget Warnings</Text>
-            <Switch
-              value={notifBudget}
-              onValueChange={setNotifBudget}
-              trackColor={{ false: colors.border, true: colors.accentBlue }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.rowLabel}>Streak Reminders</Text>
-            <Switch
-              value={notifStreak}
-              onValueChange={setNotifStreak}
-              trackColor={{ false: colors.border, true: colors.accentBlue }}
-              thumbColor="#fff"
-            />
-          </View>
+          {[
+            { label: 'Weekly Recap', value: notifWeekly, setter: setNotifWeekly },
+            { label: 'Goal Nudges', value: notifGoals, setter: setNotifGoals },
+            { label: 'Budget Warnings', value: notifBudget, setter: setNotifBudget },
+            { label: 'Streak Reminders', value: notifStreak, setter: setNotifStreak },
+          ].map((item, i, arr) => (
+            <View key={item.label} style={[styles.switchRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
+              <Text style={styles.rowLabel}>{item.label}</Text>
+              <Switch
+                value={item.value}
+                onValueChange={item.setter}
+                trackColor={{ false: colors.border.default, true: colors.accent.blue }}
+                thumbColor="#fff"
+              />
+            </View>
+          ))}
         </View>
 
-        {/* Demo Mode */}
         {isDemo && (
           <>
             <Text style={styles.sectionTitle}>Demo Mode</Text>
@@ -210,20 +190,18 @@ export default function SettingsScreen({ navigation }: Props) {
           </>
         )}
 
-        {/* Account actions */}
         {!isDemo && (
           <>
-            <Text style={styles.sectionTitle}>Account</Text>
+            <Text style={styles.sectionTitle}>Account Actions</Text>
             <View style={styles.card}>
               <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={handleSignOut}>
-                <Text style={[styles.rowLabel, { color: colors.red }]}>Sign Out</Text>
+                <Text style={[styles.rowLabel, { color: colors.accent.red }]}>Sign Out</Text>
                 <Text style={styles.rowArrow}>→</Text>
               </TouchableOpacity>
             </View>
           </>
         )}
 
-        {/* Privacy */}
         <Text style={styles.sectionTitle}>Privacy</Text>
         <View style={styles.card}>
           <TouchableOpacity style={styles.row}>
@@ -231,7 +209,7 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={handleDeleteAll}>
-            <Text style={[styles.rowLabel, { color: colors.red }]}>Delete All Data</Text>
+            <Text style={[styles.rowLabel, { color: colors.accent.red }]}>Delete All Data</Text>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
         </View>
@@ -246,67 +224,65 @@ export default function SettingsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   content: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 16,
   },
   screenTitle: {
-    fontSize: theme.fontSize.xxl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 20,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
-    padding: 4,
-    marginBottom: 8,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.subtle,
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.subtle,
   },
   rowLabel: {
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
   },
   rowValue: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.secondary,
   },
   rowMeta: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
     marginTop: 2,
   },
   rowArrow: {
-    fontSize: theme.fontSize.md,
-    color: colors.textSecondary,
+    ...typography.subheading,
+    color: colors.text.muted,
   },
   editRow: {
     flexDirection: 'row',
@@ -314,64 +290,73 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editInput: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 6,
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    color: colors.textPrimary,
-    fontSize: theme.fontSize.sm,
-    minWidth: 80,
+    color: colors.text.primary,
+    ...typography.label,
+    minWidth: 90,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '60',
   },
   saveText: {
-    color: colors.accentBlue,
-    fontSize: theme.fontSize.sm,
+    ...typography.label,
+    color: colors.accent.blue,
     fontWeight: '600',
   },
-  addAccountButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    alignItems: 'center',
+  syncBadge: {
+    backgroundColor: colors.accent.greenGlow,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.accent.green + '30',
+  },
+  syncText: {
+    ...typography.caption,
+    color: colors.accent.green,
+    fontWeight: '600',
   },
   addAccountText: {
-    color: colors.accentBlue,
-    fontSize: theme.fontSize.sm,
+    ...typography.label,
+    color: colors.accent.blue,
     fontWeight: '600',
   },
   demoCard: {
-    backgroundColor: colors.amber + '15',
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.accent.amberGlow,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.amber + '40',
+    borderColor: colors.accent.amber + '30',
     padding: 20,
-    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent.amber,
   },
   demoTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '700',
-    color: colors.amber,
+    ...typography.heading,
+    color: colors.accent.amberLight,
     marginBottom: 8,
   },
   demoText: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.text.secondary,
     marginBottom: 16,
   },
   connectButton: {
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
   connectButtonText: {
     color: '#fff',
-    fontSize: theme.fontSize.md,
+    ...typography.label,
     fontWeight: '600',
   },
   version: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.disabled,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: 28,
   },
 });

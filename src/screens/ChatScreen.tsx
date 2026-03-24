@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import ChatBubble from '../components/ChatBubble';
 import ChatSuggestions from '../components/ChatSuggestions';
@@ -28,9 +28,18 @@ function TypingIndicator() {
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const animate = (dot: Animated.Value, delay: number) =>
+    // Slide in
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 9 }),
+    ]).start();
+
+    // Animate dots
+    const animDot = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
@@ -38,13 +47,18 @@ function TypingIndicator() {
           Animated.timing(dot, { toValue: 0.3, duration: 300, useNativeDriver: true }),
         ])
       );
-    animate(dot1, 0).start();
-    animate(dot2, 200).start();
-    animate(dot3, 400).start();
+    animDot(dot1, 0).start();
+    animDot(dot2, 150).start();
+    animDot(dot3, 300).start();
   }, []);
 
   return (
-    <View style={typingStyles.container}>
+    <Animated.View
+      style={[
+        typingStyles.container,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+    >
       <View style={typingStyles.avatar}>
         <Text style={typingStyles.avatarText}>⚡</Text>
       </View>
@@ -53,7 +67,7 @@ function TypingIndicator() {
           <Animated.View key={i} style={[typingStyles.dot, { opacity: dot }]} />
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -68,7 +82,9 @@ const typingStyles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.accentBlue + '30',
+    backgroundColor: colors.accent.blueGlow,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '30',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -76,16 +92,19 @@ const typingStyles = StyleSheet.create({
   avatarText: { fontSize: 14 },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg.surface,
     borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border.default,
     padding: 14,
     gap: 6,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
-    backgroundColor: colors.textSecondary,
+    backgroundColor: colors.text.muted,
   },
 });
 
@@ -193,8 +212,13 @@ export default function ChatScreen({ navigation, route }: Props) {
     <View style={styles.container}>
       <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
       <View style={styles.header}>
-        <Text style={styles.headerIcon}>⚡</Text>
-        <Text style={styles.headerTitle}>Financial Coach</Text>
+        <View style={styles.headerAvatar}>
+          <Text style={styles.headerAvatarText}>⚡</Text>
+        </View>
+        <View>
+          <Text style={styles.headerTitle}>Financial Coach</Text>
+          <Text style={styles.headerSub}>Powered by GPT-4o</Text>
+        </View>
       </View>
       <KeyboardAvoidingView
         style={styles.flex}
@@ -220,7 +244,7 @@ export default function ChatScreen({ navigation, route }: Props) {
           <TextInput
             style={styles.input}
             placeholder="Ask anything about your finances..."
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.text.disabled}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={() => handleSend()}
@@ -243,61 +267,76 @@ export default function ChatScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.subtle,
+    gap: 12,
   },
-  headerIcon: {
+  headerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.accent.blueGlow,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '40',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarText: {
     fontSize: 18,
-    marginRight: 8,
   },
   headerTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.heading,
+    color: colors.text.primary,
+  },
+  headerSub: {
+    ...typography.caption,
+    color: colors.text.muted,
   },
   chatContent: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 8,
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
+    borderTopColor: colors.border.subtle,
+    backgroundColor: colors.bg.primary,
+    gap: 10,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
+    paddingVertical: 11,
+    ...typography.body,
+    color: colors.text.primary,
     maxHeight: 100,
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.accentBlue,
+    backgroundColor: colors.accent.blue,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: colors.border,
+    backgroundColor: colors.bg.elevated,
   },
   sendIcon: {
     fontSize: 20,

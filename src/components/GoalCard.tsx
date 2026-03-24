@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { Goal } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { differenceInDays } from 'date-fns';
@@ -10,35 +10,61 @@ interface Props {
   goal: Goal;
   compact?: boolean;
   onPress?: () => void;
+  index?: number;
 }
 
 function getGoalEmoji(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes('japan') || lower.includes('trip') || lower.includes('travel')) return '\u2708\uFE0F';
-  if (lower.includes('emergency') || lower.includes('safety')) return '\uD83D\uDEE1\uFE0F';
-  if (lower.includes('macbook') || lower.includes('laptop') || lower.includes('computer')) return '\uD83D\uDCBB';
-  if (lower.includes('car')) return '\uD83D\uDE97';
-  if (lower.includes('house') || lower.includes('home')) return '\uD83C\uDFE0';
-  if (lower.includes('wedding')) return '\uD83D\uDC8D';
-  return '\uD83C\uDFAF';
+  if (lower.includes('japan') || lower.includes('trip') || lower.includes('travel')) return '✈️';
+  if (lower.includes('emergency') || lower.includes('safety')) return '🛡️';
+  if (lower.includes('macbook') || lower.includes('laptop') || lower.includes('computer')) return '💻';
+  if (lower.includes('car')) return '🚗';
+  if (lower.includes('house') || lower.includes('home')) return '🏠';
+  if (lower.includes('wedding')) return '💍';
+  return '🎯';
 }
 
-export default function GoalCard({ goal, compact = false, onPress }: Props) {
+export default function GoalCard({ goal, compact = false, onPress, index = 0 }: Props) {
   const progress = goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0;
   const percentage = Math.round(progress * 100);
   const daysLeft = differenceInDays(new Date(goal.target_date), new Date());
   const emoji = getGoalEmoji(goal.name);
 
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    const delay = index * 80;
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, delay, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, delay, useNativeDriver: true }),
+      Animated.spring(progressAnim, {
+        toValue: Math.min(percentage, 100),
+        tension: 60,
+        friction: 8,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [percentage]);
+
+  const animatedBarWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
   if (compact) {
     return (
-      <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.8}>
-        <Text style={styles.emoji}>{emoji}</Text>
-        <Text style={styles.compactName} numberOfLines={1}>{goal.name}</Text>
-        <View style={styles.compactBarBg}>
-          <View style={[styles.compactBarFill, { width: `${Math.min(percentage, 100)}%` }]} />
-        </View>
-        <Text style={styles.compactPercent}>{percentage}%</Text>
-      </TouchableOpacity>
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.8}>
+          <Text style={styles.emoji}>{emoji}</Text>
+          <Text style={styles.compactName} numberOfLines={1}>{goal.name}</Text>
+          <View style={styles.compactBarBg}>
+            <Animated.View style={[styles.compactBarFill, { width: animatedBarWidth }]} />
+          </View>
+          <Text style={styles.compactPercent}>{percentage}%</Text>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
@@ -55,7 +81,7 @@ export default function GoalCard({ goal, compact = false, onPress }: Props) {
         <Text style={styles.percentage}>{percentage}%</Text>
       </View>
       <View style={styles.fullBarBg}>
-        <View style={[styles.fullBarFill, { width: `${Math.min(percentage, 100)}%` }]} />
+        <Animated.View style={[styles.fullBarFill, { width: animatedBarWidth }]} />
       </View>
       <View style={styles.amountRow}>
         <Text style={styles.amountCurrent}>{formatCurrency(goal.current_amount)}</Text>
@@ -67,44 +93,47 @@ export default function GoalCard({ goal, compact = false, onPress }: Props) {
 
 const styles = StyleSheet.create({
   compactCard: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 14,
     width: 150,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   emoji: {
     fontSize: 24,
     marginBottom: 6,
   },
   compactName: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 8,
+    ...typography.label,
+    color: colors.text.primary,
+    marginBottom: 10,
   },
   compactBarBg: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: colors.border.default,
+    borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 6,
   },
   compactBarFill: {
     height: '100%',
-    backgroundColor: colors.accentBlue,
-    borderRadius: 3,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 2,
   },
   compactPercent: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.accent.blue,
     fontWeight: '600',
   },
   fullCard: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   headerRow: {
     flexDirection: 'row',
@@ -116,44 +145,41 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   fullName: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
   },
   daysLeft: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
     marginTop: 2,
   },
   percentage: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: '700',
-    color: colors.accentBlue,
+    ...typography.title,
+    color: colors.accent.blue,
   },
   fullBarBg: {
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: colors.border.default,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   fullBarFill: {
     height: '100%',
-    backgroundColor: colors.accentBlue,
-    borderRadius: 4,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 3,
   },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   amountCurrent: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
   },
   amountTarget: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.muted,
     marginLeft: 4,
   },
 });

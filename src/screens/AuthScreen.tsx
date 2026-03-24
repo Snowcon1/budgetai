@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 
 interface Props {
   navigation: { goBack: () => void };
@@ -38,7 +38,6 @@ export default function AuthScreen({ navigation }: Props) {
     });
     setLoading(false);
     if (error) Alert.alert('Sign In Failed', error.message);
-    // On success, RootNavigator's onAuthStateChange handles the rest
   };
 
   const handleSignUp = async () => {
@@ -58,7 +57,6 @@ export default function AuthScreen({ navigation }: Props) {
     });
     setLoading(false);
     if (error) Alert.alert('Sign Up Failed', error.message);
-    // On success, RootNavigator's onAuthStateChange handles the rest
   };
 
   return (
@@ -71,8 +69,11 @@ export default function AuthScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.logo}>SnapBudget</Text>
-        <Text style={styles.tagline}>Your AI-powered financial coach</Text>
+        <View style={styles.logoSection}>
+          <Text style={styles.logoIcon}>⚡</Text>
+          <Text style={styles.logo}>SnapBudget</Text>
+          <Text style={styles.tagline}>Your AI-powered financial coach</Text>
+        </View>
 
         <View style={styles.card}>
           <View style={styles.tabs}>
@@ -94,32 +95,35 @@ export default function AuthScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Your name"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.text.disabled}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
               autoCorrect={false}
+              selectionColor={colors.accent.blue}
             />
           )}
 
           <TextInput
             style={styles.input}
             placeholder="Email address"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.text.disabled}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            selectionColor={colors.accent.blue}
           />
 
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={colors.text.disabled}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            selectionColor={colors.accent.blue}
           />
 
           <TouchableOpacity
@@ -148,86 +152,103 @@ export default function AuthScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   container: {
     flexGrow: 1,
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 80,
     paddingBottom: 40,
     alignItems: 'center',
   },
-  logo: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.accentBlue,
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoIcon: {
+    fontSize: 36,
     marginBottom: 8,
   },
+  logo: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.accent.blue,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
   tagline: {
-    fontSize: theme.fontSize.md,
-    color: colors.textSecondary,
-    marginBottom: 48,
+    ...typography.body,
+    color: colors.text.muted,
   },
   card: {
     width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 20,
     padding: 24,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: colors.background,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.bg.primary,
+    borderRadius: 10,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 9,
     alignItems: 'center',
-    borderRadius: theme.borderRadius.sm - 2,
+    borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: colors.accentBlue,
+    backgroundColor: colors.accent.blue,
   },
   tabText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.muted,
   },
   tabTextActive: {
     color: '#fff',
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: colors.background,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.bg.primary,
+    borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
-    marginBottom: 12,
+    ...typography.body,
+    color: colors.text.primary,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   primaryButton: {
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
+    shadowColor: colors.accent.blue,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
   primaryButtonDisabled: {
     opacity: 0.6,
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: theme.fontSize.md,
+    ...typography.subheading,
     fontWeight: '700',
   },
   backButton: {
-    marginTop: 32,
+    marginTop: 28,
     padding: 8,
   },
   backText: {
-    color: colors.textSecondary,
-    fontSize: theme.fontSize.sm,
+    ...typography.label,
+    color: colors.text.muted,
   },
 });

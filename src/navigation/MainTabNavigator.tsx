@@ -1,45 +1,77 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
 import HomeScreen from '../screens/HomeScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import GoalsScreen from '../screens/GoalsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import SubscriptionsScreen from '../screens/SubscriptionsScreen';
 
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ icon, focused, hasBadge }: { icon: string; focused: boolean; hasBadge?: boolean }) {
+interface TabIconProps {
+  name: keyof typeof Ionicons.glyphMap;
+  focused: boolean;
+  size: number;
+  hasBadge?: boolean;
+}
+
+function TabIcon({ name, focused, size, hasBadge = false }: TabIconProps) {
+  const dotScale = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(dotScale, {
+      toValue: focused ? 1 : 0,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 8,
+    }).start();
+  }, [focused]);
+
   return (
-    <View style={tabIconStyles.container}>
-      {hasBadge && focused && <View style={tabIconStyles.glow} />}
-      <Text style={[tabIconStyles.icon, focused && tabIconStyles.iconFocused]}>{icon}</Text>
+    <View style={tabStyles.wrapper}>
+      <View style={tabStyles.iconContainer}>
+        <Ionicons
+          name={focused ? name : (name.replace('-outline', '') + '-outline') as keyof typeof Ionicons.glyphMap}
+          size={size}
+          color={focused ? colors.accent.blue : colors.text.disabled}
+        />
+        {hasBadge && (
+          <View style={tabStyles.permanentBadge} />
+        )}
+      </View>
+      <Animated.View style={[tabStyles.activeDot, { transform: [{ scale: dotScale }] }]} />
     </View>
   );
 }
 
-const tabIconStyles = StyleSheet.create({
-  container: {
+const tabStyles = StyleSheet.create({
+  wrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+  },
+  iconContainer: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  icon: {
-    fontSize: 22,
-    opacity: 0.5,
-  },
-  iconFocused: {
-    opacity: 1,
-  },
-  glow: {
+  permanentBadge: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accentBlue + '25',
+    top: -1,
+    right: -3,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent.blue,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent.blue,
   },
 });
 
@@ -48,27 +80,23 @@ export default function MainTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: colors.bg.primary,
+          borderTopColor: colors.border.subtle,
           borderTopWidth: 1,
-          height: 60,
+          height: 64,
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarActiveTintColor: colors.accentBlue,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
+        tabBarShowLabel: false,
         headerStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: colors.bg.primary,
           elevation: 0,
           shadowOpacity: 0,
         },
-        headerTintColor: colors.textPrimary,
+        headerTintColor: colors.text.primary,
         headerTitleStyle: {
           fontWeight: '600',
+          letterSpacing: -0.2,
         },
       }}
     >
@@ -77,7 +105,9 @@ export default function MainTabNavigator() {
         component={HomeScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="home-outline" focused={focused} size={22} />
+          ),
         }}
       />
       <Tab.Screen
@@ -85,7 +115,9 @@ export default function MainTabNavigator() {
         component={TransactionsScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="list-outline" focused={focused} size={22} />
+          ),
         }}
       />
       <Tab.Screen
@@ -93,7 +125,9 @@ export default function MainTabNavigator() {
         component={ChatScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon icon="💬" focused={focused} hasBadge />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="chatbubble-outline" focused={focused} size={24} hasBadge />
+          ),
         }}
       />
       <Tab.Screen
@@ -101,7 +135,9 @@ export default function MainTabNavigator() {
         component={GoalsScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon icon="🎯" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="trophy-outline" focused={focused} size={22} />
+          ),
         }}
       />
       <Tab.Screen
@@ -109,7 +145,9 @@ export default function MainTabNavigator() {
         component={SettingsScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="settings-outline" focused={focused} size={22} />
+          ),
         }}
       />
     </Tab.Navigator>

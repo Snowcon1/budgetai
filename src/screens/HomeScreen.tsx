@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Animated } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Category } from '../types';
 import DemoModeBanner from '../components/DemoModeBanner';
@@ -28,6 +28,21 @@ export default function HomeScreen({ navigation }: Props) {
     weeklyChallenge,
     user,
   } = useAppStore();
+
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const txnAnims = useRef<Animated.CompositeAnimation | null>(null);
+
+  // FAB idle pulse
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabScale, { toValue: 1.04, duration: 1000, useNativeDriver: true }),
+        Animated.timing(fabScale, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -60,40 +75,73 @@ export default function HomeScreen({ navigation }: Props) {
 
   const recentTransactions = transactions.slice(0, 6);
 
+  // Create stagger anims for transactions
+  const txnFades = useRef(recentTransactions.map(() => new Animated.Value(0))).current;
+  const txnSlides = useRef(recentTransactions.map(() => new Animated.Value(12))).current;
+
+  useEffect(() => {
+    Animated.stagger(
+      40,
+      recentTransactions.map((_, i) =>
+        Animated.parallel([
+          Animated.timing(txnFades[i], { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.spring(txnSlides[i], { toValue: 0, useNativeDriver: true, tension: 80, friction: 9 }),
+        ])
+      )
+    ).start();
+  }, [transactions.length]);
+
+  const handleFabPress = () => {
+    Animated.sequence([
+      Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
+    ]).start(() => navigation.navigate('ReceiptCapture'));
+  };
+
   return (
     <View style={styles.container}>
       <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.greeting}>Hey, {user?.name ?? 'there'} 👋</Text>
+        <View style={styles.greetingRow}>
+          <View>
+            <Text style={styles.greetingSmall}>Good morning,</Text>
+            <Text style={styles.greeting}>{user?.name ?? 'there'} 👋</Text>
+          </View>
+        </View>
 
         <HealthScore score={healthScore} />
         <MonthSummaryBar spent={monthlyData.spent} income={user?.monthly_income ?? 0} />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Goals</Text>
-          <FlatList
-            data={goals}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(g) => g.id}
-            renderItem={({ item }) => (
-              <GoalCard
-                goal={item}
-                compact
-                onPress={() => navigation.navigate('GoalDetail', { goalId: item.id })}
-              />
-            )}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Spending This Month</Text>
-          <View style={styles.pillRow}>
-            {monthlyData.topCategories.map(([cat, amount]) => (
-              <CategoryPill key={cat} category={cat} amount={amount} />
-            ))}
+        {goals.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Goals</Text>
+            <FlatList
+              data={goals}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(g) => g.id}
+              renderItem={({ item, index }) => (
+                <GoalCard
+                  goal={item}
+                  compact
+                  index={index}
+                  onPress={() => navigation.navigate('GoalDetail', { goalId: item.id })}
+                />
+              )}
+            />
           </View>
-        </View>
+        )}
+
+        {monthlyData.topCategories.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Spending This Month</Text>
+            <View style={styles.pillRow}>
+              {monthlyData.topCategories.map(([cat, amount]) => (
+                <CategoryPill key={cat} category={cat} amount={amount} />
+              ))}
+            </View>
+          </View>
+        )}
 
         {currentStreak > 0 && <StreakCard streak={currentStreak} />}
 
@@ -107,28 +155,37 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Transactions')}>
-              <Text style={styles.seeAll}>See All</Text>
+              <Text style={styles.seeAll}>See All →</Text>
             </TouchableOpacity>
           </View>
-          {recentTransactions.map((t) => (
-            <TransactionItem
+          {recentTransactions.map((t, i) => (
+            <Animated.View
               key={t.id}
-              transaction={t}
-              onPress={() => navigation.navigate('TransactionDetail', { transactionId: t.id })}
-            />
+              style={{
+                opacity: txnFades[i] ?? 1,
+                transform: [{ translateY: txnSlides[i] ?? 0 }],
+              }}
+            >
+              <TransactionItem
+                transaction={t}
+                onPress={() => navigation.navigate('TransactionDetail', { transactionId: t.id })}
+              />
+            </Animated.View>
           ))}
         </View>
 
-        <View style={{ height: 80 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('ReceiptCapture')}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.fabIcon}>+</Text>
-      </TouchableOpacity>
+      <Animated.View style={[styles.fabWrapper, { transform: [{ scale: fabScale }] }]}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleFabPress}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.fabIcon}>📷</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
@@ -136,20 +193,30 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 16,
   },
+  greetingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 4,
+  },
+  greetingSmall: {
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   greeting: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
+    ...typography.title,
+    color: colors.text.primary,
   },
   section: {
     marginBottom: 20,
@@ -161,14 +228,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.heading,
+    color: colors.text.primary,
     marginBottom: 12,
   },
   seeAll: {
-    fontSize: theme.fontSize.sm,
-    color: colors.accentBlue,
+    ...typography.label,
+    color: colors.accent.blue,
     fontWeight: '600',
     marginBottom: 12,
   },
@@ -176,25 +242,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  fab: {
+  fabWrapper: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accentBlue,
+    bottom: 24,
+  },
+  fab: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.accent.blue,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: colors.accentBlue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: colors.accent.blue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
   },
   fabIcon: {
-    fontSize: 28,
-    color: '#fff',
-    lineHeight: 30,
+    fontSize: 24,
   },
 });

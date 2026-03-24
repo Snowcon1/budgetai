@@ -8,14 +8,14 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Category, Transaction } from '../types';
 import TransactionItem from '../components/TransactionItem';
 import DemoModeBanner from '../components/DemoModeBanner';
-import { allCategories } from '../constants/categories';
+import { allCategories, categoryEmojis } from '../constants/categories';
 
 interface Props {
   navigation: {
@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function TransactionsScreen({ navigation }: Props) {
-  const { transactions, isDemo } = useAppStore();
+  const { transactions } = useAppStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [refreshing, setRefreshing] = useState(false);
@@ -68,12 +68,12 @@ export default function TransactionsScreen({ navigation }: Props) {
       <DemoModeBanner onPress={() => navigation.navigate('Settings')} />
 
       <View style={styles.monthSelector}>
-        <TouchableOpacity onPress={() => setSelectedMonth(subMonths(selectedMonth, 1))}>
-          <Text style={styles.arrow}>←</Text>
+        <TouchableOpacity style={styles.arrowButton} onPress={() => setSelectedMonth(subMonths(selectedMonth, 1))}>
+          <Text style={styles.arrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthText}>{format(selectedMonth, 'MMMM yyyy')}</Text>
-        <TouchableOpacity onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
-          <Text style={styles.arrow}>→</Text>
+        <TouchableOpacity style={styles.arrowButton} onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
+          <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
       </View>
 
@@ -91,6 +91,7 @@ export default function TransactionsScreen({ navigation }: Props) {
               style={[styles.filterChip, selectedCategory === cat && styles.filterChipActive]}
               onPress={() => setSelectedCategory(cat)}
             >
+              <Text style={styles.filterEmoji}>{categoryEmojis[cat]}</Text>
               <Text style={[styles.filterText, selectedCategory === cat && styles.filterTextActive]}>{cat}</Text>
             </TouchableOpacity>
           ))}
@@ -102,7 +103,7 @@ export default function TransactionsScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accentBlue} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent.blue} />
         }
         renderSectionHeader={({ section }) => (
           <Text style={styles.dateHeader}>{section.title}</Text>
@@ -115,7 +116,9 @@ export default function TransactionsScreen({ navigation }: Props) {
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>🔍</Text>
             <Text style={styles.emptyText}>No transactions found</Text>
+            <Text style={styles.emptySubtext}>Try a different month or category</Text>
           </View>
         }
         stickySectionHeadersEnabled={false}
@@ -126,7 +129,7 @@ export default function TransactionsScreen({ navigation }: Props) {
         onPress={() => navigation.navigate('ReceiptCapture')}
         activeOpacity={0.8}
       >
-        <Text style={styles.fabIcon}>+</Text>
+        <Text style={styles.fabIcon}>📷</Text>
       </TouchableOpacity>
     </View>
   );
@@ -135,94 +138,119 @@ export default function TransactionsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   monthSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.subtle,
+  },
+  arrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   arrow: {
-    fontSize: theme.fontSize.xl,
-    color: colors.accentBlue,
+    fontSize: 22,
+    color: colors.accent.blue,
     fontWeight: '600',
-    paddingHorizontal: 8,
+    lineHeight: 26,
   },
   monthText: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.heading,
+    color: colors.text.primary,
   },
   filterContainer: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.border.subtle,
   },
   filterScroll: {
-    paddingHorizontal: theme.screenPadding,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     gap: 8,
   },
   filterChip: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: colors.surface,
+    borderRadius: 20,
+    backgroundColor: colors.bg.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border.default,
+    gap: 5,
   },
   filterChipActive: {
-    backgroundColor: colors.accentBlue,
-    borderColor: colors.accentBlue,
+    backgroundColor: colors.accent.blue,
+    borderColor: colors.accent.blue,
+  },
+  filterEmoji: {
+    fontSize: 12,
   },
   filterText: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.muted,
   },
   filterTextActive: {
     color: '#fff',
     fontWeight: '600',
   },
   listContent: {
-    paddingHorizontal: theme.screenPadding,
-    paddingTop: 12,
-    paddingBottom: 80,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 90,
   },
   dateHeader: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
     marginTop: 16,
     marginBottom: 8,
   },
   empty: {
-    paddingTop: 60,
+    paddingTop: 80,
     alignItems: 'center',
   },
+  emptyIcon: {
+    fontSize: 36,
+    marginBottom: 12,
+  },
   emptyText: {
-    fontSize: theme.fontSize.md,
-    color: colors.textSecondary,
+    ...typography.subheading,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    ...typography.body,
+    color: colors.text.muted,
   },
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accentBlue,
+    bottom: 24,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.accent.blue,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: colors.accentBlue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: colors.accent.blue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
   },
   fabIcon: {
-    fontSize: 28,
-    color: '#fff',
-    lineHeight: 30,
+    fontSize: 24,
   },
 });

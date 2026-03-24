@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { Subscription } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { format } from 'date-fns';
@@ -13,11 +13,12 @@ interface Props {
 
 export default function SubscriptionItem({ subscription, onCancel }: Props) {
   const firstLetter = subscription.merchant.charAt(0).toUpperCase();
-  const logoColor = subscription.possibly_unused ? colors.amber : colors.accentBlue;
+  const logoColor = subscription.possibly_unused ? colors.accent.amber : colors.accent.blue;
+  const logoBg = subscription.possibly_unused ? colors.accent.amberGlow : colors.accent.blueGlow;
 
   return (
     <View style={[styles.container, subscription.possibly_unused && styles.unusedContainer]}>
-      <View style={[styles.logo, { backgroundColor: logoColor + '30' }]}>
+      <View style={[styles.logo, { backgroundColor: logoBg, borderColor: logoColor + '30' }]}>
         <Text style={[styles.logoText, { color: logoColor }]}>{firstLetter}</Text>
       </View>
       <View style={styles.info}>
@@ -44,15 +45,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   unusedContainer: {
-    borderWidth: 1,
-    borderColor: colors.amber + '50',
-    backgroundColor: colors.amber + '08',
+    borderColor: colors.accent.amber + '40',
+    backgroundColor: colors.accent.amberGlow,
   },
   logo: {
     width: 42,
@@ -61,40 +63,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
   },
   logoText: {
-    fontSize: theme.fontSize.lg,
+    ...typography.heading,
     fontWeight: '700',
   },
   info: {
     flex: 1,
   },
   name: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
   },
   meta: {
-    fontSize: theme.fontSize.xs,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
     marginTop: 2,
   },
   rightSection: {
     alignItems: 'flex-end',
   },
   amount: {
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
   },
   activeBadge: {
-    fontSize: theme.fontSize.xs,
-    color: colors.green,
+    ...typography.caption,
+    color: colors.accent.green,
     marginTop: 2,
   },
   cancelText: {
-    fontSize: theme.fontSize.xs,
-    color: colors.amber,
+    ...typography.caption,
+    color: colors.accent.amber,
     fontWeight: '600',
     marginTop: 2,
   },

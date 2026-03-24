@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { format, addMonths } from 'date-fns';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Goal } from '../types';
 import GoalCard from '../components/GoalCard';
@@ -53,7 +53,7 @@ export default function GoalsScreen({ navigation }: Props) {
     const feasibility = monthlyIncome > 0 && monthlySavings < monthlyIncome * 0.2 ? 'achievable' : 'tight';
 
     const goal: Goal = {
-      id: 'goal_' + Date.now().toString(), // temp id; replaced by Supabase UUID in real mode
+      id: 'goal_' + Date.now().toString(),
       name: newName.trim(),
       target_amount: targetAmount,
       current_amount: 0,
@@ -88,10 +88,11 @@ export default function GoalsScreen({ navigation }: Props) {
           <Text style={styles.totalAmount}>{formatCurrency(totalSaved)}</Text>
         </View>
 
-        {goals.map((g) => (
+        {goals.map((g, index) => (
           <GoalCard
             key={g.id}
             goal={g}
+            index={index}
             onPress={() => navigation.navigate('GoalDetail', { goalId: g.id })}
           />
         ))}
@@ -106,6 +107,7 @@ export default function GoalsScreen({ navigation }: Props) {
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddModal(false)}>
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>New Goal</Text>
 
             <Text style={styles.fieldLabel}>Goal Name</Text>
@@ -114,7 +116,7 @@ export default function GoalsScreen({ navigation }: Props) {
               value={newName}
               onChangeText={setNewName}
               placeholder="e.g. Vacation Fund"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.text.disabled}
             />
 
             <Text style={styles.fieldLabel}>Target Amount ($)</Text>
@@ -123,7 +125,7 @@ export default function GoalsScreen({ navigation }: Props) {
               value={newTarget}
               onChangeText={setNewTarget}
               placeholder="5000"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.text.disabled}
               keyboardType="numeric"
             />
 
@@ -133,7 +135,7 @@ export default function GoalsScreen({ navigation }: Props) {
               value={newMonths}
               onChangeText={setNewMonths}
               placeholder="6"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.text.disabled}
               keyboardType="numeric"
             />
 
@@ -143,13 +145,13 @@ export default function GoalsScreen({ navigation }: Props) {
                 style={[styles.typeButton, newType === 'savings' && styles.typeButtonActive]}
                 onPress={() => setNewType('savings')}
               >
-                <Text style={[styles.typeText, newType === 'savings' && styles.typeTextActive]}>Savings</Text>
+                <Text style={[styles.typeText, newType === 'savings' && styles.typeTextActive]}>💰 Savings</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.typeButton, newType === 'debt' && styles.typeButtonActive]}
                 onPress={() => setNewType('debt')}
               >
-                <Text style={[styles.typeText, newType === 'debt' && styles.typeTextActive]}>Debt Payoff</Text>
+                <Text style={[styles.typeText, newType === 'debt' && styles.typeTextActive]}>💳 Debt Payoff</Text>
               </TouchableOpacity>
             </View>
 
@@ -166,10 +168,10 @@ export default function GoalsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.bg.primary,
   },
   content: {
-    paddingHorizontal: theme.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 20,
   },
   header: {
@@ -177,59 +179,75 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   totalLabel: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   totalAmount: {
-    fontSize: theme.fontSize.xxxl,
-    fontWeight: '700',
-    color: colors.green,
+    ...typography.hero,
+    color: colors.accent.green,
   },
   addButton: {
-    borderWidth: 2,
-    borderColor: colors.accentBlue,
+    borderWidth: 1.5,
+    borderColor: colors.accent.blue + '60',
     borderStyle: 'dashed',
-    borderRadius: theme.borderRadius.card,
+    borderRadius: 16,
     paddingVertical: 20,
     alignItems: 'center',
     marginTop: 4,
+    backgroundColor: colors.accent.blueGlow,
   },
   addButtonText: {
-    color: colors.accentBlue,
-    fontSize: theme.fontSize.md,
-    fontWeight: '600',
+    ...typography.subheading,
+    color: colors.accent.blue,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: colors.surfaceElevated,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.bg.elevated,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 24,
+    paddingBottom: 36,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderBottomWidth: 0,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border.default,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   modalTitle: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
     textAlign: 'center',
     marginBottom: 20,
   },
   fieldLabel: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.label,
+    color: colors.text.muted,
     marginBottom: 6,
     marginTop: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   fieldInput: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.sm,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 10,
     padding: 14,
-    fontSize: theme.fontSize.md,
-    color: colors.textPrimary,
+    ...typography.subheading,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
   },
   typeRow: {
     flexDirection: 'row',
@@ -239,35 +257,38 @@ const styles = StyleSheet.create({
   typeButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: theme.borderRadius.sm,
+    borderColor: colors.border.default,
+    borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
   },
   typeButtonActive: {
-    borderColor: colors.accentBlue,
-    backgroundColor: colors.accentBlue + '20',
+    borderColor: colors.accent.blue,
+    backgroundColor: colors.accent.blueGlow,
   },
   typeText: {
-    color: colors.textSecondary,
-    fontSize: theme.fontSize.sm,
-    fontWeight: '500',
+    ...typography.label,
+    color: colors.text.muted,
   },
   typeTextActive: {
-    color: colors.accentBlue,
+    color: colors.accent.blue,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
-    marginBottom: 8,
+    shadowColor: colors.accent.blue,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: theme.fontSize.md,
+    ...typography.subheading,
     fontWeight: '600',
   },
 });

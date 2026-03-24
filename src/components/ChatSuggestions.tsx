@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 
 interface Props {
   onSelect: (text: string) => void;
@@ -15,18 +15,48 @@ const suggestions = [
 ];
 
 export default function ChatSuggestions({ onSelect }: Props) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 9 }),
+    ]).start();
+  }, []);
+
+  const handleChipPress = (text: string, scaleAnim: Animated.Value) => {
+    Animated.sequence([
+      Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true, tension: 120, friction: 7 }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 7 }),
+    ]).start(() => onSelect(text));
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Ask your financial coach</Text>
-      <View style={styles.grid}>
-        {suggestions.map((s) => (
-          <TouchableOpacity key={s.text} style={styles.chip} onPress={() => onSelect(s.text)} activeOpacity={0.7}>
-            <Text style={styles.chipIcon}>{s.icon}</Text>
-            <Text style={styles.chipText}>{s.text}</Text>
-          </TouchableOpacity>
-        ))}
+    <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <View style={styles.iconContainer}>
+        <Text style={styles.headerIcon}>⚡</Text>
       </View>
-    </View>
+      <Text style={styles.title}>Ask your financial coach</Text>
+      <Text style={styles.subtitle}>Get personalized advice based on your spending</Text>
+      <View style={styles.grid}>
+        {suggestions.map((s) => {
+          const scaleAnim = useRef(new Animated.Value(1)).current;
+          return (
+            <TouchableOpacity
+              key={s.text}
+              onPress={() => handleChipPress(s.text, scaleAnim)}
+              activeOpacity={1}
+            >
+              <Animated.View style={[styles.chip, { transform: [{ scale: scaleAnim }] }]}>
+                <Text style={styles.chipIcon}>{s.icon}</Text>
+                <Text style={styles.chipText}>{s.text}</Text>
+              </Animated.View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </Animated.View>
   );
 }
 
@@ -34,36 +64,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  iconContainer: {
+    alignSelf: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.accent.blueGlow,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '40',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  headerIcon: {
+    fontSize: 24,
   },
   title: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 6,
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.text.muted,
+    textAlign: 'center',
+    marginBottom: 28,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: 12,
+    justifyContent: 'center',
   },
   chip: {
-    width: '45%',
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    width: 148,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border.default,
   },
   chipIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+    fontSize: 22,
+    marginBottom: 10,
   },
   chipText: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textPrimary,
-    fontWeight: '500',
+    ...typography.label,
+    color: colors.text.primary,
+    lineHeight: 18,
   },
 });

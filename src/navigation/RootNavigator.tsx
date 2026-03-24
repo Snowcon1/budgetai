@@ -12,6 +12,7 @@ import DemoModeScreen from '../screens/DemoModeScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
 import GoalDetailScreen from '../screens/GoalDetailScreen';
 import ReceiptCaptureScreen from '../screens/ReceiptCaptureScreen';
+import WeeklyRecapScreen from '../screens/WeeklyRecapScreen';
 
 type RootStackParamList = {
   Onboarding: undefined;
@@ -21,6 +22,7 @@ type RootStackParamList = {
   TransactionDetail: { transactionId: string };
   GoalDetail: { goalId: string };
   ReceiptCapture: undefined;
+  WeeklyRecap: { weekNumber?: number };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -56,8 +58,8 @@ export default function RootNavigator() {
 
   if (!authChecked) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color={colors.accentBlue} size="large" />
+      <View style={{ flex: 1, backgroundColor: colors.bg.primary, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color={colors.accent.blue} size="large" />
       </View>
     );
   }
@@ -66,13 +68,13 @@ export default function RootNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: colors.bg.primary,
           elevation: 0,
           shadowOpacity: 0,
         },
-        headerTintColor: colors.textPrimary,
+        headerTintColor: colors.text.primary,
         headerTitleStyle: { fontWeight: '600' },
-        cardStyle: { backgroundColor: colors.background },
+        cardStyle: { backgroundColor: colors.bg.primary },
       }}
     >
       {!user ? (
@@ -89,6 +91,11 @@ export default function RootNavigator() {
           <Stack.Screen
             name="ReceiptCapture"
             component={ReceiptCaptureScreen}
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="WeeklyRecap"
+            component={WeeklyRecapScreen}
             options={{ headerShown: false, presentation: 'modal' }}
           />
         </>

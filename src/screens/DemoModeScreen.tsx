@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../constants/colors';
-import { theme } from '../constants/theme';
+import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 
 interface Props {
@@ -39,8 +39,8 @@ export default function DemoModeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: theme.screenPadding,
+    backgroundColor: colors.bg.primary,
+    paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -49,49 +49,54 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: theme.fontSize.xxl,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    ...typography.title,
+    color: colors.text.primary,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: theme.fontSize.md,
-    color: colors.textSecondary,
+    ...typography.body,
+    color: colors.text.muted,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
     paddingHorizontal: 10,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: theme.borderRadius.card,
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
     padding: 20,
     width: '100%',
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border.default,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent.amber,
   },
   cardTitle: {
-    fontSize: theme.fontSize.lg,
-    fontWeight: '600',
-    color: colors.amber,
+    ...typography.heading,
+    color: colors.accent.amberLight,
     marginBottom: 8,
   },
   cardText: {
-    fontSize: theme.fontSize.sm,
-    color: colors.textSecondary,
+    ...typography.body,
+    color: colors.text.secondary,
     lineHeight: 22,
   },
   demoButton: {
-    backgroundColor: colors.accentBlue,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 40,
+    shadowColor: colors.accent.blue,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
   },
   demoButtonText: {
     color: '#fff',
-    fontSize: theme.fontSize.md,
+    ...typography.subheading,
     fontWeight: '600',
   },
 });
