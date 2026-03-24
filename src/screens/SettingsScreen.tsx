@@ -12,6 +12,7 @@ import {
 import { colors } from '../constants/colors';
 import { theme } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
+import { supabase } from '../lib/supabase';
 import DemoModeBanner from '../components/DemoModeBanner';
 
 interface Props {
@@ -47,6 +48,20 @@ export default function SettingsScreen({ navigation }: Props) {
       }
     }
     setEditingIncome(false);
+  };
+
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await supabase.auth.signOut();
+          // RootNavigator's onAuthStateChange calls reset() automatically
+        },
+      },
+    ]);
   };
 
   const handleDeleteAll = () => {
@@ -195,6 +210,19 @@ export default function SettingsScreen({ navigation }: Props) {
           </>
         )}
 
+        {/* Account actions */}
+        {!isDemo && (
+          <>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <View style={styles.card}>
+              <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={handleSignOut}>
+                <Text style={[styles.rowLabel, { color: colors.red }]}>Sign Out</Text>
+                <Text style={styles.rowArrow}>→</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
         {/* Privacy */}
         <Text style={styles.sectionTitle}>Privacy</Text>
         <View style={styles.card}>
@@ -202,12 +230,8 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text style={styles.rowLabel}>Export Data</Text>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={handleDeleteAll}>
+          <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={handleDeleteAll}>
             <Text style={[styles.rowLabel, { color: colors.red }]}>Delete All Data</Text>
-            <Text style={styles.rowArrow}>→</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]}>
-            <Text style={styles.rowLabel}>Disconnect Accounts</Text>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
         </View>

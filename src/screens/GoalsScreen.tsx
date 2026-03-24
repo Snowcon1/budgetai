@@ -34,7 +34,7 @@ export default function GoalsScreen({ navigation }: Props) {
 
   const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
 
-  const handleAddGoal = () => {
+  const handleAddGoal = async () => {
     if (!newName.trim() || !newTarget.trim()) {
       Alert.alert('Missing Info', 'Please fill in the goal name and target amount.');
       return;
@@ -53,7 +53,7 @@ export default function GoalsScreen({ navigation }: Props) {
     const feasibility = monthlyIncome > 0 && monthlySavings < monthlyIncome * 0.2 ? 'achievable' : 'tight';
 
     const goal: Goal = {
-      id: 'goal_' + Date.now().toString(),
+      id: 'goal_' + Date.now().toString(), // temp id; replaced by Supabase UUID in real mode
       name: newName.trim(),
       target_amount: targetAmount,
       current_amount: 0,
@@ -62,7 +62,12 @@ export default function GoalsScreen({ navigation }: Props) {
       created_at: format(new Date(), 'yyyy-MM-dd'),
     };
 
-    addGoal(goal);
+    const saved = await addGoal(goal);
+    if (!saved) {
+      Alert.alert('Error', 'Failed to create goal. Please try again.');
+      return;
+    }
+
     setShowAddModal(false);
     setNewName('');
     setNewTarget('');

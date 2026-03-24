@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Transaction, Account, Goal, ChatMessage, User } from '../types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -6,7 +7,10 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
     persistSession: true,
+    detectSessionInUrl: false,
   },
 });
 
@@ -14,6 +18,8 @@ interface SupabaseResponse<T> {
   data: T | null;
   error: string | null;
 }
+
+// ─── Transactions ─────────────────────────────────────────────────────────────
 
 export async function getTransactions(
   userId: string,
@@ -37,7 +43,7 @@ export async function getTransactions(
 }
 
 export async function insertTransaction(
-  t: Transaction & { user_id: string }
+  t: Omit<Transaction, 'id'> & { user_id: string }
 ): Promise<SupabaseResponse<Transaction>> {
   try {
     const { data, error } = await supabase.from('transactions').insert(t).select().single();
@@ -76,6 +82,8 @@ export async function deleteTransaction(id: string): Promise<SupabaseResponse<nu
   }
 }
 
+// ─── Goals ────────────────────────────────────────────────────────────────────
+
 export async function getGoals(userId: string): Promise<SupabaseResponse<Goal[]>> {
   try {
     const { data, error } = await supabase
@@ -91,7 +99,7 @@ export async function getGoals(userId: string): Promise<SupabaseResponse<Goal[]>
 }
 
 export async function insertGoal(
-  g: Goal & { user_id: string }
+  g: Omit<Goal, 'id'> & { user_id: string }
 ): Promise<SupabaseResponse<Goal>> {
   try {
     const { data, error } = await supabase.from('goals').insert(g).select().single();
@@ -115,6 +123,8 @@ export async function updateGoal(
   }
 }
 
+// ─── Accounts ─────────────────────────────────────────────────────────────────
+
 export async function getAccounts(userId: string): Promise<SupabaseResponse<Account[]>> {
   try {
     const { data, error } = await supabase.from('accounts').select('*').eq('user_id', userId);
@@ -137,6 +147,8 @@ export async function upsertAccount(
   }
 }
 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
 export async function getChatHistory(userId: string): Promise<SupabaseResponse<ChatMessage[]>> {
   try {
     const { data, error } = await supabase
@@ -152,7 +164,7 @@ export async function getChatHistory(userId: string): Promise<SupabaseResponse<C
 }
 
 export async function insertChatMessage(
-  m: ChatMessage & { user_id: string }
+  m: Omit<ChatMessage, 'id'> & { user_id: string }
 ): Promise<SupabaseResponse<ChatMessage>> {
   try {
     const { data, error } = await supabase.from('chat_messages').insert(m).select().single();
@@ -163,9 +175,11 @@ export async function insertChatMessage(
   }
 }
 
+// ─── Profile ──────────────────────────────────────────────────────────────────
+
 export async function getUserProfile(userId: string): Promise<SupabaseResponse<User>> {
   try {
-    const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (error) return { data: null, error: error.message };
     return { data: data as User, error: null };
   } catch (e) {
@@ -178,7 +192,7 @@ export async function updateUserProfile(
   changes: Partial<User>
 ): Promise<SupabaseResponse<User>> {
   try {
-    const { data, error } = await supabase.from('users').update(changes).eq('id', userId).select().single();
+    const { data, error } = await supabase.from('profiles').update(changes).eq('id', userId).select().single();
     if (error) return { data: null, error: error.message };
     return { data: data as User, error: null };
   } catch (e) {

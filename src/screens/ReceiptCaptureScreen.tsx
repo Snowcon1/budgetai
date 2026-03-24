@@ -25,7 +25,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     date: string;
   } | null>(null);
   const cameraRef = useRef<CameraView>(null);
-  const { addTransaction, isDemo } = useAppStore();
+  const { addTransaction, isDemo, accounts } = useAppStore();
 
   const processImage = async (uri: string) => {
     setIsProcessing(true);
@@ -82,18 +82,19 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     }
   };
 
-  const handleSave = (data: { merchant: string; total: number; category: Category; date: string }) => {
+  const handleSave = async (data: { merchant: string; total: number; category: Category; date: string }) => {
+    const checkingAccount = accounts.find((a) => a.type === 'checking') ?? accounts[0];
     const transaction: Transaction = {
-      id: 'txn_' + Date.now().toString(),
+      id: 'txn_' + Date.now().toString(), // temp id; replaced by Supabase UUID in real mode
       merchant: data.merchant,
       amount: -data.total,
       category: data.category,
       date: new Date().toISOString().split('T')[0],
-      account_id: 'acct_checking_001',
+      account_id: checkingAccount?.id ?? '',
       is_manual: true,
       is_receipt: true,
     };
-    addTransaction(transaction);
+    await addTransaction(transaction);
     navigation.goBack();
   };
 

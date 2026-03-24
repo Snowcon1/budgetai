@@ -82,7 +82,7 @@ const steps: OnboardingStep[] = [
 ];
 
 interface Props {
-  navigation: { replace: (screen: string) => void };
+  navigation: { replace: (screen: string) => void; navigate: (screen: string) => void };
 }
 
 export default function OnboardingScreen({ navigation }: Props) {
@@ -101,7 +101,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   };
 
   const handleConnect = () => {
-    navigation.replace('PlaidConnect');
+    navigation.navigate('Auth');
   };
 
   const isLastStep = currentStep === steps.length - 1;
