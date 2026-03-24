@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-expo-app@latest . --template blank-typescript)",
+      "Bash(npx create-expo-app@latest snapbudget --template blank-typescript)",
+      "Bash(shopt -s dotglob)",
+      "Bash(mv snapbudget/* .)",
+      "Bash(mv snapbudget/.* .)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Read(//c/Program Files/nodejs/**)",
+      "Bash(node -e \"console.log\\(require.resolve\\(''@expo/cli/build/src/start/index.js''\\)\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\(''expo/bin/cli''\\)\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\(''expo/bin/cli.js''\\)\\)\")",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/expo/package.json''\\); console.log\\(pkg.version\\)\")"
+    ]
+  }
+}
