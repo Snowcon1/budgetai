@@ -8,6 +8,9 @@ import {
   Modal,
   TextInput,
   Alert,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { format, addMonths } from 'date-fns';
 import { colors } from '../constants/colors';
@@ -124,91 +127,92 @@ export default function GoalsScreen({ navigation }: Props) {
       </ScrollView>
 
       <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddModal(false)}>
-          <View
-            style={styles.modalSheet}
-            onStartShouldSetResponder={() => true}
-            // @ts-ignore – web only: stop click from bubbling to the overlay
-            onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()}
-          >
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>New Goal</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowAddModal(false)} />
+            <View style={styles.modalSheet}>
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
+                <View style={styles.modalHandle} />
+                <Text style={styles.modalTitle}>New Goal</Text>
 
-            <Text style={styles.fieldLabel}>Goal Name</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="e.g. Vacation Fund"
-              placeholderTextColor={colors.text.disabled}
-            />
+                <Text style={styles.fieldLabel}>Goal Name</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={newName}
+                  onChangeText={setNewName}
+                  placeholder="e.g. Vacation Fund"
+                  placeholderTextColor={colors.text.disabled}
+                />
 
-            <Text style={styles.fieldLabel}>Target Amount ($)</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={newTarget}
-              onChangeText={setNewTarget}
-              placeholder="5000"
-              placeholderTextColor={colors.text.disabled}
-              keyboardType="numeric"
-            />
+                <Text style={styles.fieldLabel}>Target Amount ($)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={newTarget}
+                  onChangeText={setNewTarget}
+                  placeholder="5000"
+                  placeholderTextColor={colors.text.disabled}
+                  keyboardType="numeric"
+                />
 
-            <Text style={styles.fieldLabel}>Months to Achieve</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={newMonths}
-              onChangeText={setNewMonths}
-              placeholder="6"
-              placeholderTextColor={colors.text.disabled}
-              keyboardType="numeric"
-            />
+                <Text style={styles.fieldLabel}>Months to Achieve</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={newMonths}
+                  onChangeText={setNewMonths}
+                  placeholder="6"
+                  placeholderTextColor={colors.text.disabled}
+                  keyboardType="numeric"
+                />
 
-            <Text style={styles.fieldLabel}>Type</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeButton, newType === 'savings' && styles.typeButtonActive]}
-                onPress={() => setNewType('savings')}
-              >
-                <Text style={[styles.typeText, newType === 'savings' && styles.typeTextActive]}>💰 Savings</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeButton, newType === 'debt' && styles.typeButtonActive]}
-                onPress={() => setNewType('debt')}
-              >
-                <Text style={[styles.typeText, newType === 'debt' && styles.typeTextActive]}>💳 Debt Payoff</Text>
-              </TouchableOpacity>
-            </View>
-
-            {linkableAccounts.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Link Account (optional)</Text>
-                <View style={styles.accountRow}>
+                <Text style={styles.fieldLabel}>Type</Text>
+                <View style={styles.typeRow}>
                   <TouchableOpacity
-                    style={[styles.accountButton, !linkedAccountId && styles.accountButtonActive]}
-                    onPress={() => setLinkedAccountId(null)}
+                    style={[styles.typeButton, newType === 'savings' && styles.typeButtonActive]}
+                    onPress={() => setNewType('savings')}
                   >
-                    <Text style={[styles.accountText, !linkedAccountId && styles.accountTextActive]}>None</Text>
+                    <Text style={[styles.typeText, newType === 'savings' && styles.typeTextActive]}>💰 Savings</Text>
                   </TouchableOpacity>
-                  {linkableAccounts.map((a) => (
-                    <TouchableOpacity
-                      key={a.id}
-                      style={[styles.accountButton, linkedAccountId === a.id && styles.accountButtonActive]}
-                      onPress={() => setLinkedAccountId(a.id)}
-                    >
-                      <Text style={[styles.accountText, linkedAccountId === a.id && styles.accountTextActive]} numberOfLines={1}>
-                        {a.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  <TouchableOpacity
+                    style={[styles.typeButton, newType === 'debt' && styles.typeButtonActive]}
+                    onPress={() => setNewType('debt')}
+                  >
+                    <Text style={[styles.typeText, newType === 'debt' && styles.typeTextActive]}>💳 Debt Payoff</Text>
+                  </TouchableOpacity>
                 </View>
-              </>
-            )}
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddGoal}>
-              <Text style={styles.saveButtonText}>Create Goal</Text>
-            </TouchableOpacity>
+                {linkableAccounts.length > 0 && (
+                  <>
+                    <Text style={styles.fieldLabel}>Link Account (optional)</Text>
+                    <View style={styles.accountRow}>
+                      <TouchableOpacity
+                        style={[styles.accountButton, !linkedAccountId && styles.accountButtonActive]}
+                        onPress={() => setLinkedAccountId(null)}
+                      >
+                        <Text style={[styles.accountText, !linkedAccountId && styles.accountTextActive]}>None</Text>
+                      </TouchableOpacity>
+                      {linkableAccounts.map((a) => (
+                        <TouchableOpacity
+                          key={a.id}
+                          style={[styles.accountButton, linkedAccountId === a.id && styles.accountButtonActive]}
+                          onPress={() => setLinkedAccountId(a.id)}
+                        >
+                          <Text style={[styles.accountText, linkedAccountId === a.id && styles.accountTextActive]} numberOfLines={1}>
+                            {a.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
+                )}
+
+                <TouchableOpacity style={styles.saveButton} onPress={handleAddGoal}>
+                  <Text style={styles.saveButtonText}>Create Goal</Text>
+                </TouchableOpacity>
+                <View style={{ height: 20 }} />
+              </ScrollView>
+            </View>
           </View>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -261,7 +265,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.elevated,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 24,
+    maxHeight: '90%',
+    paddingHorizontal: 24,
     paddingBottom: 36,
     borderWidth: 1,
     borderColor: colors.border.default,

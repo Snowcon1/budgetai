@@ -21,9 +21,10 @@ const CATEGORY_MAP: Record<string, string> = {
   PERSONAL_CARE: 'Other',
   GENERAL_SERVICES: 'Other',
   GOVERNMENT_AND_NON_PROFIT: 'Other',
-  LOAN_PAYMENTS: 'Other',
-  TRANSFER_IN: 'Income',
-  TRANSFER_OUT: 'Other',
+  // Credit card payments & internal transfers — exclude from spending
+  LOAN_PAYMENTS: 'Transfer',
+  TRANSFER_IN: 'Transfer',
+  TRANSFER_OUT: 'Transfer',
   BANK_FEES: 'Other',
 };
 
@@ -133,12 +134,10 @@ Deno.serve(async (req) => {
         const category = mapCategory(t.personal_finance_category?.primary ?? 'OTHER');
         const isIncome = category === 'Income';
 
-        // Plaid convention: positive = money OUT (debit), negative = money IN (credit)
-        // Our app convention: negative = expense, positive = income
-        // So: negate Plaid amount for expenses, keep sign for income
+        // Plaid: positive = debit (money out), negative = credit (money in)
+        // Our app: negative = expense/transfer, positive = income
         let amount: number;
         if (isIncome) {
-          // Plaid income (e.g. payroll deposit) comes as negative → make positive
           amount = Math.abs(t.amount);
         } else {
           // Plaid expense comes as positive → make negative

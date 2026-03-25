@@ -17,6 +17,7 @@ const VALID_CATEGORIES = [
   'Rent',
   'Utilities',
   'Income',
+  'Transfer',
   'Other',
 ];
 
@@ -59,7 +60,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a transaction categorizer. Given a numbered list of merchant names, respond with ONLY a JSON array of category strings in the same order. Each category must be exactly one of: ${VALID_CATEGORIES.join(', ')}. No explanation, no extra text — just the JSON array.`,
+            content: `You are a transaction categorizer. Given a numbered list of merchant names, respond with ONLY a JSON array of category strings in the same order. Each category must be exactly one of: ${VALID_CATEGORIES.join(', ')}.
+
+Use "Transfer" for: credit card payments, autopayments to credit cards, bank transfers, loan payments, mortgage payments, internal account transfers, Venmo/Zelle/Cash App payments between people (not purchases).
+Use "Income" for: payroll/direct deposits, interest income, tax refunds, reimbursements received.
+No explanation, no extra text — just the JSON array.`,
           },
           {
             role: 'user',

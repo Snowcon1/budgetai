@@ -133,6 +133,10 @@ function mapPlaidCategory(plaidCategory: string): string {
     INCOME: 'Income',
     RENT: 'Rent',
     UTILITIES: 'Utilities',
+    GENERAL_MERCHANDISE: 'Shopping',
+    LOAN_PAYMENTS: 'Transfer',
+    TRANSFER_IN: 'Transfer',
+    TRANSFER_OUT: 'Transfer',
   };
   return map[plaidCategory] ?? 'Other';
 }

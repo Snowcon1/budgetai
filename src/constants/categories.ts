@@ -13,6 +13,7 @@ export const categoryEmojis: Record<Category, string> = {
   'Income': '💰',
   'Rent': '🏠',
   'Utilities': '💡',
+  'Transfer': '↔️',
   'Other': '📦',
 };
 
@@ -28,6 +29,7 @@ export const categoryColors: Record<Category, string> = {
   'Income': colors.category['Income'].accent,
   'Rent': colors.category['Rent'].accent,
   'Utilities': colors.category['Utilities'].accent,
+  'Transfer': colors.category['Transfer'].accent,
   'Other': colors.category['Other'].accent,
 };
 
@@ -43,6 +45,7 @@ export const categoryBgColors: Record<Category, string> = {
   'Income': colors.category['Income'].bg,
   'Rent': colors.category['Rent'].bg,
   'Utilities': colors.category['Utilities'].bg,
+  'Transfer': colors.category['Transfer'].bg,
   'Other': colors.category['Other'].bg,
 };
 
@@ -58,5 +61,6 @@ export const allCategories: Category[] = [
   'Income',
   'Rent',
   'Utilities',
+  'Transfer',
   'Other',
 ];

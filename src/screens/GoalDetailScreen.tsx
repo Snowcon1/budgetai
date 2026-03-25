@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Modal, TextInput, Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { differenceInDays, format } from 'date-fns';
 import { colors } from '../constants/colors';
@@ -230,32 +230,30 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
       />
 
       <Modal visible={showContribution} transparent animationType="slide" onRequestClose={() => setShowContribution(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowContribution(false)}>
-          <View
-            style={styles.modalSheet}
-            onStartShouldSetResponder={() => true}
-            // @ts-ignore
-            onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()}
-          >
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Add Contribution</Text>
-            <Text style={styles.modalSub}>
-              {formatCurrency(goal.current_amount)} saved · {formatCurrency(goal.target_amount - goal.current_amount)} to go
-            </Text>
-            <TextInput
-              style={styles.amountInput}
-              value={contributionAmount}
-              onChangeText={setContributionAmount}
-              placeholder="$0.00"
-              placeholderTextColor={colors.text.disabled}
-              keyboardType="numeric"
-              autoFocus
-            />
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddContribution}>
-              <Text style={styles.saveButtonText}>Save Progress</Text>
-            </TouchableOpacity>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowContribution(false)} />
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>Add Contribution</Text>
+              <Text style={styles.modalSub}>
+                {formatCurrency(goal.current_amount)} saved · {formatCurrency(goal.target_amount - goal.current_amount)} to go
+              </Text>
+              <TextInput
+                style={styles.amountInput}
+                value={contributionAmount}
+                onChangeText={setContributionAmount}
+                placeholder="$0.00"
+                placeholderTextColor={colors.text.disabled}
+                keyboardType="numeric"
+                autoFocus
+              />
+              <TouchableOpacity style={styles.saveButton} onPress={handleAddContribution}>
+                <Text style={styles.saveButtonText}>Save Progress</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -420,7 +418,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 24,
-    paddingBottom: 36,
+    paddingBottom: 40,
     borderWidth: 1,
     borderColor: colors.border.default,
     borderBottomWidth: 0,

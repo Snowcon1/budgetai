@@ -16,7 +16,7 @@ export function calculateHealthScore(
   });
 
   const monthlySpend = monthlyTransactions
-    .filter((t) => t.category !== 'Income')
+    .filter((t) => t.category !== 'Income' && t.category !== 'Transfer')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   // Spending ratio (25 pts): full 25 if under 70%, scales to 0 at 100%+

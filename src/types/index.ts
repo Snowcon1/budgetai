@@ -10,6 +10,7 @@ export type Category =
   | 'Income'
   | 'Rent'
   | 'Utilities'
+  | 'Transfer'
   | 'Other';
 
 export interface Transaction {

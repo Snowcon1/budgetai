@@ -49,7 +49,7 @@ export function generateWeeklyChallenge(
       const total = transactions
         .filter((t) => {
           const d = new Date(t.date);
-          return d >= weekStart && d <= weekEnd && t.category === cat && t.amount < 0;
+          return d >= weekStart && d <= weekEnd && t.category === cat && t.amount < 0 && t.category !== 'Transfer';
         })
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 

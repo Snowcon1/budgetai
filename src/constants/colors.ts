@@ -43,6 +43,7 @@ export const colors = {
     'Income': { bg: '#14532D', accent: '#4ADE80', icon: '💰' },
     'Rent': { bg: '#1E1B4B', accent: '#818CF8', icon: '🏠' },
     'Utilities': { bg: '#1C1917', accent: '#A3A3A3', icon: '💡' },
+    'Transfer': { bg: '#1E293B', accent: '#64748B', icon: '↔️' },
     'Other': { bg: '#1E293B', accent: '#94A3B8', icon: '📦' },
   },
 } as const;

@@ -62,12 +62,12 @@ export default function HomeScreen({ navigation }: Props) {
     });
 
     const spent = monthTxns
-      .filter((t) => t.category !== 'Income')
+      .filter((t) => t.category !== 'Income' && t.category !== 'Transfer')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
     const categoryTotals = new Map<Category, number>();
     monthTxns
-      .filter((t) => t.category !== 'Income')
+      .filter((t) => t.category !== 'Income' && t.category !== 'Transfer')
       .forEach((t) => {
         const current = categoryTotals.get(t.category) ?? 0;
         categoryTotals.set(t.category, current + Math.abs(t.amount));
