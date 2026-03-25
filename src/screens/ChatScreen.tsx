@@ -19,7 +19,7 @@ import ChatBubble from '../components/ChatBubble';
 import ChatSuggestions from '../components/ChatSuggestions';
 import DemoModeBanner from '../components/DemoModeBanner';
 import { sendChatMessage } from '../lib/openai';
-import { ChatMessage, ChatSession } from '../types';
+import { ChatMessage, ChatSession, ActionCard } from '../types';
 import { format } from 'date-fns';
 
 interface Props {
@@ -122,6 +122,8 @@ export default function ChatScreen({ navigation, route }: Props) {
     chatSessions,
     addChatMessage,
     startNewConversation,
+    setWeeklyChallenge,
+    addGoal,
     isDemo,
     accounts,
     transactions,
@@ -162,36 +164,14 @@ export default function ChatScreen({ navigation, route }: Props) {
     setIsTyping(true);
 
     try {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const monthTxns = transactions.filter((t) => {
-        const d = new Date(t.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      });
-
-      const categoryTotals = new Map<string, number>();
-      monthTxns
-        .filter((t) => t.category !== 'Income')
-        .forEach((t) => {
-          const current = categoryTotals.get(t.category) ?? 0;
-          categoryTotals.set(t.category, current + Math.abs(t.amount));
-        });
-
-      const topCategories = Array.from(categoryTotals.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([category, total]) => ({ category, total }));
-
       const response = await sendChatMessage(
         messageText,
         chatHistory,
         {
           accounts,
           monthlyIncome: user?.monthly_income ?? 0,
-          topCategories,
+          allTransactions: transactions,
           goals,
-          recentTransactions: transactions.slice(0, 10),
           healthScore,
           subscriptions,
         },
@@ -204,6 +184,7 @@ export default function ChatScreen({ navigation, route }: Props) {
         content: response.message,
         created_at: new Date().toISOString(),
         data_card: response.data_card,
+        action_card: response.action_card,
       };
       addChatMessage(assistantMsg);
     } catch (error) {
@@ -221,6 +202,31 @@ export default function ChatScreen({ navigation, route }: Props) {
 
   // Keep ref in sync so the preloadMessage effect always calls the latest version
   handleSendRef.current = handleSend;
+
+  const handleAcceptChallenge = (card: ActionCard) => {
+    setWeeklyChallenge({
+      description: card.description || card.title,
+      completed: false,
+      opted_in: true,
+    });
+  };
+
+  const handleAddToGoal = async (card: ActionCard) => {
+    if (!card.goal_name || !card.amount) return;
+    const today = new Date();
+    const targetDate = new Date(today.getFullYear(), today.getMonth() + 6, 1)
+      .toISOString()
+      .split('T')[0];
+    await addGoal({
+      id: '',
+      name: card.goal_name,
+      target_amount: card.amount,
+      current_amount: 0,
+      target_date: targetDate,
+      type: 'savings',
+      created_at: today.toISOString(),
+    });
+  };
 
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -312,7 +318,12 @@ export default function ChatScreen({ navigation, route }: Props) {
             showsVerticalScrollIndicator={false}
           >
             {chatHistory.map((msg) => (
-              <ChatBubble key={msg.id} message={msg} />
+              <ChatBubble
+                key={msg.id}
+                message={msg}
+                onAcceptChallenge={handleAcceptChallenge}
+                onAddToGoal={handleAddToGoal}
+              />
             ))}
             {isTyping && <TypingIndicator />}
           </ScrollView>
@@ -327,6 +338,12 @@ export default function ChatScreen({ navigation, route }: Props) {
             onSubmitEditing={() => handleSend()}
             returnKeyType="send"
             multiline
+            onKeyPress={(e: any) => {
+              if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                e.preventDefault?.();
+                handleSend();
+              }
+            }}
           />
           <TouchableOpacity
             style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}

@@ -7,7 +7,7 @@ import HomeScreen from '../screens/HomeScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import GoalsScreen from '../screens/GoalsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import AccountsScreen from '../screens/AccountsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -141,12 +141,12 @@ export default function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Accounts"
+        component={AccountsScreen}
         options={{
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="settings-outline" focused={focused} size={22} />
+            <TabIcon name="wallet-outline" focused={focused} size={22} />
           ),
         }}
       />

@@ -1,13 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
-import { ChatMessage, DataCard } from '../types';
+import { ChatMessage, DataCard, ActionCard } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 
 interface Props {
   message: ChatMessage;
+  onAcceptChallenge?: (card: ActionCard) => void;
+  onAddToGoal?: (card: ActionCard) => void;
 }
+
+// ─── Data Cards (read-only visual) ───────────────────────────────────────────
 
 function DataCardView({ card }: { card: DataCard }) {
   if (card.type === 'spending_chart') {
@@ -42,9 +46,7 @@ function DataCardView({ card }: { card: DataCard }) {
             <View style={dataStyles.barBg}>
               <View style={[dataStyles.barFill, { width: `${Math.min((g.current / g.target) * 100, 100)}%` }]} />
             </View>
-            <Text style={dataStyles.goalMeta}>
-              Need {formatCurrency(g.monthly_needed)}/mo
-            </Text>
+            <Text style={dataStyles.goalMeta}>Need {formatCurrency(g.monthly_needed)}/mo</Text>
           </View>
         ))}
       </View>
@@ -76,7 +78,104 @@ function DataCardView({ card }: { card: DataCard }) {
   return null;
 }
 
-export default function ChatBubble({ message }: Props) {
+// ─── Action Cards (interactive) ──────────────────────────────────────────────
+
+function ChallengeCard({
+  card,
+  onAccept,
+}: {
+  card: ActionCard;
+  onAccept: () => void;
+}) {
+  const [accepted, setAccepted] = useState(false);
+
+  const handleAccept = () => {
+    setAccepted(true);
+    onAccept();
+  };
+
+  return (
+    <View style={actionStyles.card}>
+      <View style={actionStyles.headerRow}>
+        <Text style={actionStyles.icon}>💪</Text>
+        <View style={actionStyles.headerText}>
+          <Text style={actionStyles.tag}>WEEKLY CHALLENGE</Text>
+          <Text style={actionStyles.title}>{card.title}</Text>
+        </View>
+      </View>
+      <Text style={actionStyles.description}>{card.description}</Text>
+      {card.savings != null && card.savings > 0 && (
+        <View style={actionStyles.savingsRow}>
+          <Text style={actionStyles.savingsLabel}>Potential weekly savings</Text>
+          <Text style={actionStyles.savingsValue}>${card.savings}</Text>
+        </View>
+      )}
+      {card.goal_name && (
+        <Text style={actionStyles.goalLink}>Towards: {card.goal_name}</Text>
+      )}
+      {accepted ? (
+        <View style={actionStyles.acceptedRow}>
+          <Text style={actionStyles.acceptedText}>✓ Challenge accepted!</Text>
+        </View>
+      ) : (
+        <View style={actionStyles.buttonRow}>
+          <TouchableOpacity style={actionStyles.acceptButton} onPress={handleAccept}>
+            <Text style={actionStyles.acceptButtonText}>Accept Challenge</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function AddToGoalCard({
+  card,
+  onAdd,
+}: {
+  card: ActionCard;
+  onAdd: () => void;
+}) {
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    setAdded(true);
+    onAdd();
+  };
+
+  return (
+    <View style={actionStyles.card}>
+      <View style={actionStyles.headerRow}>
+        <Text style={actionStyles.icon}>🎯</Text>
+        <View style={actionStyles.headerText}>
+          <Text style={actionStyles.tag}>ADD TO GOALS</Text>
+          <Text style={actionStyles.title}>{card.title}</Text>
+        </View>
+        {card.amount != null && (
+          <Text style={actionStyles.amount}>{formatCurrency(card.amount)}</Text>
+        )}
+      </View>
+      <Text style={actionStyles.description}>{card.description}</Text>
+      {added ? (
+        <View style={actionStyles.acceptedRow}>
+          <Text style={actionStyles.acceptedText}>✓ Added to your goals!</Text>
+        </View>
+      ) : (
+        <View style={actionStyles.buttonRow}>
+          <TouchableOpacity style={actionStyles.acceptButton} onPress={handleAdd}>
+            <Text style={actionStyles.acceptButtonText}>Add to Goals</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={actionStyles.dismissButton} onPress={() => setAdded(true)}>
+            <Text style={actionStyles.dismissText}>Maybe later</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Main ChatBubble ──────────────────────────────────────────────────────────
+
+export default function ChatBubble({ message, onAcceptChallenge, onAddToGoal }: Props) {
   const isUser = message.role === 'user';
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -101,9 +200,23 @@ export default function ChatBubble({ message }: Props) {
           <Text style={styles.avatarText}>⚡</Text>
         </View>
       )}
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-        <Text style={[styles.text, isUser && styles.userText]}>{message.content}</Text>
-        {message.data_card && <DataCardView card={message.data_card} />}
+      <View style={styles.bubbleCol}>
+        <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+          <Text style={[styles.text, isUser && styles.userText]}>{message.content}</Text>
+          {message.data_card && <DataCardView card={message.data_card} />}
+        </View>
+        {message.action_card?.type === 'challenge' && (
+          <ChallengeCard
+            card={message.action_card}
+            onAccept={() => onAcceptChallenge?.(message.action_card!)}
+          />
+        )}
+        {message.action_card?.type === 'add_to_goal' && (
+          <AddToGoalCard
+            card={message.action_card}
+            onAdd={() => onAddToGoal?.(message.action_card!)}
+          />
+        )}
       </View>
     </Animated.View>
   );
@@ -120,6 +233,7 @@ const styles = StyleSheet.create({
   },
   assistantRow: {
     justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   avatar: {
     width: 32,
@@ -132,12 +246,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderWidth: 1,
     borderColor: colors.accent.blue + '30',
+    flexShrink: 0,
   },
-  avatarText: {
-    fontSize: 14,
+  avatarText: { fontSize: 14 },
+  bubbleCol: {
+    maxWidth: '78%',
+    gap: 8,
   },
   bubble: {
-    maxWidth: '78%',
     borderRadius: 16,
     padding: 14,
   },
@@ -197,20 +313,9 @@ const dataStyles = StyleSheet.create({
     textAlign: 'right',
     fontWeight: '600',
   },
-  goalRow: {
-    marginBottom: 10,
-  },
-  goalName: {
-    ...typography.label,
-    color: colors.text.primary,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  goalMeta: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 4,
-  },
+  goalRow: { marginBottom: 10 },
+  goalName: { ...typography.label, color: colors.text.primary, fontWeight: '600', marginBottom: 4 },
+  goalMeta: { ...typography.caption, color: colors.text.muted, marginTop: 4 },
   subRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -218,25 +323,110 @@ const dataStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.default,
   },
-  subName: {
+  subName: { ...typography.label, color: colors.accent.green },
+  subAmount: { ...typography.label, color: colors.text.primary },
+  subTotalRow: { marginTop: 8 },
+  subTotal: { ...typography.label, color: colors.text.primary, fontWeight: '600' },
+  subSavings: { ...typography.caption, color: colors.accent.amber, marginTop: 2 },
+});
+
+const actionStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent.blue,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 8,
+  },
+  icon: { fontSize: 22 },
+  headerText: { flex: 1 },
+  tag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.accent.blue,
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  title: {
+    ...typography.subheading,
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  amount: {
+    ...typography.subheading,
+    color: colors.accent.green,
+    fontWeight: '700',
+  },
+  description: {
+    ...typography.caption,
+    color: colors.text.muted,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  savingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.accent.greenGlow,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  savingsLabel: {
+    ...typography.caption,
+    color: colors.text.muted,
+  },
+  savingsValue: {
+    ...typography.subheading,
+    color: colors.accent.green,
+    fontWeight: '700',
+  },
+  goalLink: {
+    ...typography.caption,
+    color: colors.accent.blue,
+    marginBottom: 10,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: colors.accent.blue,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: '#fff',
+    ...typography.label,
+    fontWeight: '700',
+  },
+  dismissButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  dismissText: {
+    ...typography.label,
+    color: colors.text.muted,
+  },
+  acceptedRow: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  acceptedText: {
     ...typography.label,
     color: colors.accent.green,
-  },
-  subAmount: {
-    ...typography.label,
-    color: colors.text.primary,
-  },
-  subTotalRow: {
-    marginTop: 8,
-  },
-  subTotal: {
-    ...typography.label,
-    color: colors.text.primary,
     fontWeight: '600',
-  },
-  subSavings: {
-    ...typography.caption,
-    color: colors.accent.amber,
-    marginTop: 2,
   },
 });

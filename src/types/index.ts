@@ -54,12 +54,23 @@ export interface Subscription {
   possibly_unused: boolean;
 }
 
+export interface ActionCard {
+  type: 'challenge' | 'add_to_goal';
+  title: string;
+  description: string;
+  savings?: number;
+  category?: string;
+  amount?: number;
+  goal_name?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
   data_card?: DataCard;
+  action_card?: ActionCard;
   conversation_id?: string;
 }
 

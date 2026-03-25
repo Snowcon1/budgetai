@@ -27,6 +27,7 @@ export default function HomeScreen({ navigation }: Props) {
     currentStreak,
     weeklyChallenge,
     user,
+    accounts,
   } = useAppStore();
 
   const fabScale = useRef(new Animated.Value(1)).current;
@@ -74,6 +75,13 @@ export default function HomeScreen({ navigation }: Props) {
 
   const recentTransactions = transactions.slice(0, 6);
 
+  const totalCash = accounts
+    .filter((a) => a.type === 'checking' || a.type === 'savings')
+    .reduce((s, a) => s + a.balance, 0);
+  const totalDebt = accounts
+    .filter((a) => a.type === 'credit')
+    .reduce((s, a) => s + Math.abs(a.balance), 0);
+
   // Create stagger anims for transactions — rebuild when count changes
   const txnCount = recentTransactions.length;
   const txnFadesRef = useRef<Animated.Value[]>([]);
@@ -118,6 +126,39 @@ export default function HomeScreen({ navigation }: Props) {
         </View>
 
         <HealthScore score={healthScore} />
+
+        {accounts.length > 0 && (
+          <TouchableOpacity
+            style={styles.balanceCard}
+            onPress={() => navigation.navigate('Accounts')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.balanceLeft}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Text style={styles.balanceValue}>
+                ${(totalCash - totalDebt).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+            </View>
+            <View style={styles.balancePills}>
+              <View style={styles.balancePill}>
+                <Text style={styles.balancePillLabel}>Cash</Text>
+                <Text style={[styles.balancePillValue, { color: colors.accent.green }]}>
+                  ${totalCash.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </Text>
+              </View>
+              {totalDebt > 0 && (
+                <View style={styles.balancePill}>
+                  <Text style={styles.balancePillLabel}>Debt</Text>
+                  <Text style={[styles.balancePillValue, { color: colors.accent.red }]}>
+                    -${totalDebt.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.balanceArrow}>›</Text>
+          </TouchableOpacity>
+        )}
+
         <MonthSummaryBar spent={monthlyData.spent} income={user?.monthly_income ?? 0} />
 
         {goals.length > 0 && (
@@ -237,6 +278,54 @@ const styles = StyleSheet.create({
   greeting: {
     ...typography.title,
     color: colors.text.primary,
+  },
+  balanceCard: {
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  balanceLeft: {
+    flex: 1,
+  },
+  balanceLabel: {
+    ...typography.caption,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  balanceValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text.primary,
+    letterSpacing: -0.5,
+  },
+  balancePills: {
+    flexDirection: 'row',
+    gap: 8,
+    marginRight: 8,
+  },
+  balancePill: {
+    alignItems: 'center',
+  },
+  balancePillLabel: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    marginBottom: 1,
+  },
+  balancePillValue: {
+    ...typography.caption,
+    fontWeight: '700',
+  },
+  balanceArrow: {
+    ...typography.title,
+    color: colors.text.muted,
+    lineHeight: 24,
   },
   section: {
     marginBottom: 20,

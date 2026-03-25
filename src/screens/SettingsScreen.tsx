@@ -18,11 +18,12 @@ import DemoModeBanner from '../components/DemoModeBanner';
 interface Props {
   navigation: {
     navigate: (screen: string) => void;
+    goBack: () => void;
   };
 }
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { user, isDemo, accounts, reset, setUser } = useAppStore();
+  const { user, isDemo, accounts, reset, setUser, userId } = useAppStore();
   const [notifWeekly, setNotifWeekly] = useState(true);
   const [notifGoals, setNotifGoals] = useState(true);
   const [notifBudget, setNotifBudget] = useState(true);
@@ -84,7 +85,12 @@ export default function SettingsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <DemoModeBanner />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.screenTitle}>Settings</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.screenTitle}>Settings</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
@@ -156,10 +162,13 @@ export default function SettingsScreen({ navigation }: Props) {
               </TouchableOpacity>
             </>
           ) : (
-            <View style={[styles.row, { borderBottomWidth: 0 }]}>
-              <Text style={styles.rowMeta}>Bank linking coming soon</Text>
-              <Text style={styles.comingSoonBadge}>Soon</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.row, { borderBottomWidth: 0 }]}
+              onPress={() => navigation.navigate('PlaidConnectReal') }
+            >
+              <Text style={[styles.addAccountText]}>+ Connect Bank Account</Text>
+              <Text style={styles.rowArrow}>→</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -191,7 +200,7 @@ export default function SettingsScreen({ navigation }: Props) {
               <Text style={styles.demoText}>
                 Connect your real bank accounts to get personalized insights based on your actual spending.
               </Text>
-              <TouchableOpacity style={styles.connectButton}>
+              <TouchableOpacity style={styles.connectButton} onPress={() => navigation.navigate('PlaidConnectReal')}>
                 <Text style={styles.connectButtonText}>Connect Real Accounts</Text>
               </TouchableOpacity>
             </View>
@@ -238,10 +247,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   screenTitle: {
     ...typography.title,
     color: colors.text.primary,
-    marginBottom: 20,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.bg.surface,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeText: {
+    color: colors.text.muted,
+    fontSize: 14,
+    fontWeight: '600',
   },
   sectionTitle: {
     ...typography.caption,

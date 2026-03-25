@@ -29,20 +29,29 @@ export default function TransactionsScreen({ navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredGrouped = useMemo(() => {
+  const monthTransactions = useMemo(() => {
     const monthStart = startOfMonth(selectedMonth);
     const monthEnd = endOfMonth(selectedMonth);
-
-    let filtered = transactions.filter((t) => {
+    return transactions.filter((t) => {
       const d = new Date(t.date);
       return d >= monthStart && d <= monthEnd;
     });
+  }, [transactions, selectedMonth]);
+
+  const activeCategories = useMemo(() => {
+    const cats = new Set(monthTransactions.map((t) => t.category));
+    return allCategories.filter((c) => cats.has(c));
+  }, [monthTransactions]);
+
+  const filteredGrouped = useMemo(() => {
+    let filtered = monthTransactions;
 
     if (selectedCategory !== 'All') {
       filtered = filtered.filter((t) => t.category === selectedCategory);
     }
 
     const grouped = new Map<string, Transaction[]>();
+    // Reset to 'All' if the selected category disappears in this month — handled by the chip list
     filtered.forEach((t) => {
       const dateKey = t.date;
       const existing = grouped.get(dateKey) ?? [];
@@ -55,7 +64,7 @@ export default function TransactionsScreen({ navigation }: Props) {
         title: format(new Date(date), 'EEEE, MMMM d'),
         data,
       }));
-  }, [transactions, selectedMonth, selectedCategory]);
+  }, [monthTransactions, selectedCategory]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -68,11 +77,11 @@ export default function TransactionsScreen({ navigation }: Props) {
       <DemoModeBanner />
 
       <View style={styles.monthSelector}>
-        <TouchableOpacity style={styles.arrowButton} onPress={() => setSelectedMonth(subMonths(selectedMonth, 1))}>
+        <TouchableOpacity style={styles.arrowButton} onPress={() => { setSelectedMonth(subMonths(selectedMonth, 1)); setSelectedCategory('All'); }}>
           <Text style={styles.arrow}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.monthText}>{format(selectedMonth, 'MMMM yyyy')}</Text>
-        <TouchableOpacity style={styles.arrowButton} onPress={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
+        <TouchableOpacity style={styles.arrowButton} onPress={() => { setSelectedMonth(addMonths(selectedMonth, 1)); setSelectedCategory('All'); }}>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
       </View>
@@ -85,7 +94,7 @@ export default function TransactionsScreen({ navigation }: Props) {
           >
             <Text style={[styles.filterText, selectedCategory === 'All' && styles.filterTextActive]}>All</Text>
           </TouchableOpacity>
-          {allCategories.map((cat) => (
+          {activeCategories.map((cat) => (
             <TouchableOpacity
               key={cat}
               style={[styles.filterChip, selectedCategory === cat && styles.filterChipActive]}

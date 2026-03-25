@@ -50,6 +50,7 @@ interface AppState {
   // Auth / init
   loadUserData: (userId: string) => Promise<void>;
   completeSetup: (userId: string, name: string, income: number, useSampleData: boolean) => Promise<void>;
+  connectPlaid: (publicToken: string, institutionName: string, institutionId: string) => Promise<void>;
   initDemo: () => void;
   exitDemo: () => void;
   initReal: () => void;
@@ -72,6 +73,7 @@ interface AppState {
 
   // User
   setUser: (u: User) => void;
+  setWeeklyChallenge: (challenge: WeeklyChallengeData) => void;
 
   recalculateHealthScore: () => void;
 }
@@ -255,6 +257,32 @@ export const useAppStore = create<AppState>((set, get) => ({
         weeklyChallenge: defaultWeeklyChallenge,
       });
     }
+  },
+
+  connectPlaid: async (publicToken: string, institutionName: string, institutionId: string) => {
+    const { userId } = get();
+    if (!userId) throw new Error('You must be signed in to connect a bank account.');
+
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+
+    const exchangeRes = await fetch(`${supabaseUrl}/functions/v1/plaid-exchange-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicToken, userId, institutionName, institutionId }),
+    });
+    const exchangeData = await exchangeRes.json();
+    if (!exchangeRes.ok) throw new Error(exchangeData.error ?? 'Failed to exchange token');
+
+    const syncRes = await fetch(`${supabaseUrl}/functions/v1/plaid-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    const syncData = await syncRes.json();
+    if (!syncRes.ok) throw new Error(syncData.error ?? 'Sync failed');
+
+    // Reload everything from DB
+    await get().loadUserData(userId);
   },
 
   initDemo: () => {
@@ -452,6 +480,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // ─── User ────────────────────────────────────────────────────────────────────
+
+  setWeeklyChallenge: (challenge: WeeklyChallengeData) => {
+    set({ weeklyChallenge: challenge });
+  },
 
   setUser: (u: User) => {
     set({ user: u });

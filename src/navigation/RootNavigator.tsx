@@ -9,22 +9,26 @@ import MainTabNavigator from './MainTabNavigator';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import AuthScreen from '../screens/AuthScreen';
 import DemoModeScreen from '../screens/DemoModeScreen';
+import PlaidConnectScreen from '../screens/PlaidConnectScreen';
 import QuickSetupScreen from '../screens/QuickSetupScreen';
 import TransactionDetailScreen from '../screens/TransactionDetailScreen';
 import GoalDetailScreen from '../screens/GoalDetailScreen';
 import ReceiptCaptureScreen from '../screens/ReceiptCaptureScreen';
 import WeeklyRecapScreen from '../screens/WeeklyRecapScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 type RootStackParamList = {
   Onboarding: undefined;
   Auth: undefined;
   QuickSetup: undefined;
   PlaidConnect: undefined;
+  PlaidConnectReal: undefined;
   MainTabs: undefined;
   TransactionDetail: { transactionId: string };
   GoalDetail: { goalId: string };
   ReceiptCapture: undefined;
   WeeklyRecap: { weekNumber?: number };
+  Settings: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -109,6 +113,16 @@ export default function RootNavigator() {
           <Stack.Screen
             name="WeeklyRecap"
             component={WeeklyRecapScreen}
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="PlaidConnectReal"
+            component={PlaidConnectScreen}
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
             options={{ headerShown: false, presentation: 'modal' }}
           />
         </>
