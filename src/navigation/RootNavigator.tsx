@@ -34,9 +34,13 @@ type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { user, isNewUser, wantsAuth, loadUserData, reset } = useAppStore();
+  const { user, isNewUser, wantsAuth, loadUserData, reset, loadPersona } = useAppStore();
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    loadPersona();
+  }, []);
 
   useEffect(() => {
     // INITIAL_SESSION fires once on subscription setup with the current session (or null).

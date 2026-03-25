@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { format, subDays } from 'date-fns';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Transaction,
   Account,
@@ -11,6 +12,7 @@ import {
   HealthScoreBreakdown,
   WeeklyChallengeData,
 } from '../types';
+import { PersonaId, DEFAULT_PERSONA } from '../constants/personas';
 import { demoUser, demoAccounts, demoTransactions, demoGoals, demoSubscriptions } from '../utils/demoData';
 import { calculateHealthScore } from '../utils/healthScore';
 import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
@@ -47,6 +49,7 @@ interface AppState {
   currentStreak: number;
   weeklyChallenge: WeeklyChallengeData;
   isPlaidConnected: boolean;
+  persona: PersonaId;
 
   // Auth / init
   loadUserData: (userId: string) => Promise<void>;
@@ -75,6 +78,8 @@ interface AppState {
   // User
   setUser: (u: User) => void;
   setWeeklyChallenge: (challenge: WeeklyChallengeData) => void;
+  setPersona: (id: PersonaId) => void;
+  loadPersona: () => Promise<void>;
 
   recalculateHealthScore: () => void;
 }
@@ -148,6 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentStreak: 0,
   weeklyChallenge: defaultWeeklyChallenge,
   isPlaidConnected: false,
+  persona: DEFAULT_PERSONA,
 
   // ─── Auth / Init ────────────────────────────────────────────────────────────
 
@@ -503,6 +509,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         // Silent
       });
     }
+  },
+
+  setPersona: (id: PersonaId) => {
+    set({ persona: id });
+    AsyncStorage.setItem('snapbudget_persona', id).catch(() => {});
+  },
+
+  loadPersona: async () => {
+    const saved = await AsyncStorage.getItem('snapbudget_persona').catch(() => null);
+    if (saved) set({ persona: saved as PersonaId });
   },
 
   // ─── Derived ─────────────────────────────────────────────────────────────────

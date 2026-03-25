@@ -1,5 +1,6 @@
 import { Transaction, Account, Goal, Subscription, HealthScoreBreakdown, ChatMessage, ActionCard } from '../types';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { PersonaId, DEFAULT_PERSONA } from '../constants/personas';
 
 export interface FinancialContext {
   accounts: Account[];
@@ -36,7 +37,8 @@ function buildTopCategories(transactions: Transaction[]): { category: string; to
 export async function sendChatMessage(
   userMessage: string,
   conversationHistory: ChatMessage[],
-  context: FinancialContext
+  context: FinancialContext,
+  persona: PersonaId = DEFAULT_PERSONA
 ): Promise<AIResponse> {
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -56,6 +58,7 @@ export async function sendChatMessage(
     },
     body: JSON.stringify({
       userMessage,
+      persona,
       conversationHistory: conversationHistory
         .slice(-20)
         .map((m) => ({ role: m.role, content: m.content })),

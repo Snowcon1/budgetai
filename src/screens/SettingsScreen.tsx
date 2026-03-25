@@ -14,6 +14,7 @@ import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../lib/supabase';
 import DemoModeBanner from '../components/DemoModeBanner';
+import { PERSONA_LIST, PersonaId } from '../constants/personas';
 
 interface Props {
   navigation: {
@@ -23,7 +24,7 @@ interface Props {
 }
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { user, isDemo, accounts, reset, setUser, userId } = useAppStore();
+  const { user, isDemo, accounts, reset, setUser, userId, persona, setPersona } = useAppStore();
   const [notifWeekly, setNotifWeekly] = useState(true);
   const [notifGoals, setNotifGoals] = useState(true);
   const [notifBudget, setNotifBudget] = useState(true);
@@ -180,6 +181,26 @@ export default function SettingsScreen({ navigation }: Props) {
               <Text style={styles.rowLabel}>No accounts in demo</Text>
             </View>
           )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Assistant Persona</Text>
+        <View style={styles.personaGrid}>
+          {PERSONA_LIST.map((p) => {
+            const active = persona === p.id;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.personaCard, active && styles.personaCardActive]}
+                onPress={() => setPersona(p.id as PersonaId)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.personaEmoji}>{p.emoji}</Text>
+                <Text style={[styles.personaName, active && styles.personaNameActive]}>{p.name}</Text>
+                <Text style={styles.personaTagline}>{p.tagline}</Text>
+                {active && <View style={styles.personaCheck}><Text style={styles.personaCheckText}>✓</Text></View>}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionTitle}>Notifications</Text>
@@ -414,5 +435,57 @@ const styles = StyleSheet.create({
     color: colors.text.disabled,
     textAlign: 'center',
     marginTop: 28,
+  },
+  personaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  personaCard: {
+    width: '47.5%',
+    backgroundColor: colors.bg.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: 14,
+    position: 'relative',
+  },
+  personaCardActive: {
+    borderColor: colors.accent.blue,
+    backgroundColor: colors.accent.blue + '12',
+  },
+  personaEmoji: {
+    fontSize: 26,
+    marginBottom: 6,
+  },
+  personaName: {
+    ...typography.label,
+    color: colors.text.primary,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  personaNameActive: {
+    color: colors.accent.blue,
+  },
+  personaTagline: {
+    ...typography.caption,
+    color: colors.text.muted,
+    lineHeight: 15,
+  },
+  personaCheck: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.accent.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personaCheckText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

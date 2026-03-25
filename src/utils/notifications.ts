@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Goal } from '../types';
+import { PersonaId, PERSONAS, DEFAULT_PERSONA } from '../constants/personas';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,15 +24,14 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return finalStatus === 'granted';
 }
 
-export async function scheduleWeeklyRecap(): Promise<void> {
+export async function scheduleWeeklyRecap(persona: PersonaId = DEFAULT_PERSONA): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync('weekly-recap').catch(() => {});
+
+  const { title, body } = PERSONAS[persona].notifications.weeklyRecap;
 
   await Notifications.scheduleNotificationAsync({
     identifier: 'weekly-recap',
-    content: {
-      title: 'Weekly Spending Recap',
-      body: 'Your weekly financial summary is ready. Tap to see how you did!',
-    },
+    content: { title, body },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
       weekday: 1,
@@ -41,7 +41,7 @@ export async function scheduleWeeklyRecap(): Promise<void> {
   });
 }
 
-export async function scheduleGoalNudge(goal: Goal): Promise<void> {
+export async function scheduleGoalNudge(goal: Goal, persona: PersonaId = DEFAULT_PERSONA): Promise<void> {
   const identifier = `goal-nudge-${goal.id}`;
   await Notifications.cancelScheduledNotificationAsync(identifier).catch(() => {});
 
@@ -53,12 +53,10 @@ export async function scheduleGoalNudge(goal: Goal): Promise<void> {
   const expectedProgress = totalDays > 0 ? elapsedDays / totalDays : 0;
 
   if (progress < expectedProgress * 0.8) {
+    const { title, body } = PERSONAS[persona].notifications.goalNudge(goal.name);
     await Notifications.scheduleNotificationAsync({
       identifier,
-      content: {
-        title: `${goal.name} needs attention`,
-        body: `You're a bit behind on your ${goal.name} goal. A small contribution today can help!`,
-      },
+      content: { title, body },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: 60 * 60 * 24 * 3,
@@ -68,30 +66,27 @@ export async function scheduleGoalNudge(goal: Goal): Promise<void> {
   }
 }
 
-export async function scheduleBudgetWarning(currentSpend: number, monthlyIncome: number): Promise<void> {
+export async function scheduleBudgetWarning(currentSpend: number, monthlyIncome: number, persona: PersonaId = DEFAULT_PERSONA): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync('budget-warning').catch(() => {});
 
   if (currentSpend >= monthlyIncome * 0.8) {
+    const { title, body } = PERSONAS[persona].notifications.budgetWarning;
     await Notifications.scheduleNotificationAsync({
       identifier: 'budget-warning',
-      content: {
-        title: 'Budget Alert',
-        body: "You've used over 80% of your estimated monthly budget. Consider slowing down on non-essentials.",
-      },
+      content: { title, body },
       trigger: null,
     });
   }
 }
 
-export async function scheduleStreakReminder(): Promise<void> {
+export async function scheduleStreakReminder(persona: PersonaId = DEFAULT_PERSONA): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync('streak-reminder').catch(() => {});
+
+  const { title, body } = PERSONAS[persona].notifications.streakReminder;
 
   await Notifications.scheduleNotificationAsync({
     identifier: 'streak-reminder',
-    content: {
-      title: "Don't break your streak!",
-      body: "You haven't logged any transactions in a few days. Keep your streak alive!",
-    },
+    content: { title, body },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 60 * 60 * 24 * 5,

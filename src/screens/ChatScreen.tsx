@@ -130,6 +130,7 @@ export default function ChatScreen({ navigation, route }: Props) {
     subscriptions,
     healthScore,
     user,
+    persona,
   } = useAppStore();
 
   const hasMessages = chatHistory.length > 0;
@@ -179,7 +180,8 @@ export default function ChatScreen({ navigation, route }: Props) {
           goals,
           healthScore,
           subscriptions,
-        }
+        },
+        persona
       );
 
       const assistantMsg: ChatMessage = {
