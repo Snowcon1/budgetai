@@ -42,7 +42,7 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: 'Parse this receipt. Respond ONLY with JSON: { "merchant": string, "date": "MM/DD/YYYY", "total": number, "category": one of "Dining Out"|"Groceries"|"Gas"|"Shopping"|"Entertainment"|"Health"|"Travel"|"Subscriptions"|"Other" }. Best-guess unclear fields.',
+                text: 'Parse this receipt or transaction screenshot (including Venmo, Cash App, PayPal, Zelle, bank and credit card statements). Respond ONLY with JSON: { "merchant": string, "date": "MM/DD/YYYY", "total": number, "category": one of "Dining Out"|"Groceries"|"Gas"|"Shopping"|"Entertainment"|"Health"|"Travel"|"Subscriptions"|"Other" }. For payment app screenshots, use the recipient name as merchant and the payment amount as total. Use today\'s date if no date is visible. Best-guess any unclear fields.',
               },
               {
                 type: 'image_url',

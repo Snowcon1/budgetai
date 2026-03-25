@@ -1,5 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  Platform,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
@@ -14,6 +22,51 @@ interface Props {
   navigation: { goBack: () => void };
 }
 
+function generateId(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+async function uriToBase64(uri: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  return FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+}
+
+function openFileInput(capture?: boolean): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (capture) input.capture = 'environment';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        resolve(URL.createObjectURL(file));
+      } else {
+        resolve(null);
+      }
+    };
+    input.oncancel = () => resolve(null);
+    document.body.appendChild(input);
+    input.click();
+    // Clean up DOM element after a short delay
+    setTimeout(() => {
+      if (document.body.contains(input)) document.body.removeChild(input);
+    }, 60000);
+  });
+}
+
 export default function ReceiptCaptureScreen({ navigation }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -26,9 +79,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const { addTransaction, isDemo, accounts } = useAppStore();
 
-  // Guide rectangle pulse
   const guideScale = useRef(new Animated.Value(1)).current;
-  // Processing overlay
   const processingFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -55,7 +106,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     try {
       let base64 = '';
       if (!isDemo) {
-        base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+        base64 = await uriToBase64(uri);
       }
       const result = await parseReceipt(base64, isDemo);
       setParsedData({
@@ -64,9 +115,9 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
         category: result.category,
         date: result.date,
       });
-    } catch (error) {
+    } catch {
       setParsedData({
-        merchant: 'Unknown Store',
+        merchant: 'Unknown',
         total: 0,
         category: 'Other',
         date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
@@ -81,17 +132,31 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
       await processImage('');
       return;
     }
+    if (Platform.OS === 'web') {
+      const url = await openFileInput(true);
+      if (url) {
+        await processImage(url);
+        URL.revokeObjectURL(url);
+      }
+      return;
+    }
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync({ base64: false });
-      if (photo?.uri) {
-        await processImage(photo.uri);
-      }
+      if (photo?.uri) await processImage(photo.uri);
     }
   };
 
   const handlePickImage = async () => {
     if (isDemo) {
       await processImage('');
+      return;
+    }
+    if (Platform.OS === 'web') {
+      const url = await openFileInput(false);
+      if (url) {
+        await processImage(url);
+        URL.revokeObjectURL(url);
+      }
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -106,7 +171,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
   const handleSave = async (data: { merchant: string; total: number; category: Category; date: string }) => {
     const checkingAccount = accounts.find((a) => a.type === 'checking') ?? accounts[0];
     const transaction: Transaction = {
-      id: 'txn_' + Date.now().toString(),
+      id: generateId(),
       merchant: data.merchant,
       amount: -data.total,
       category: data.category,
@@ -119,10 +184,54 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     navigation.goBack();
   };
 
-  const handleRetake = () => {
-    setParsedData(null);
-  };
+  const handleRetake = () => setParsedData(null);
 
+  // ─── Web UI ────────────────────────────────────────────────────────────────
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.webContainer}>
+        {isProcessing && (
+          <Animated.View style={[styles.processingOverlay, { opacity: processingFade }]}>
+            <View style={styles.processingCard}>
+              <ActivityIndicator size="large" color={colors.accent.blue} />
+              <Text style={styles.processingText}>Analyzing image...</Text>
+              <Text style={styles.processingSubtext}>Powered by GPT-4o Vision</Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {parsedData && <ResultCard data={parsedData} onSave={handleSave} onRetake={handleRetake} />}
+
+        {!parsedData && !isProcessing && (
+          <>
+            <View style={styles.webHeader}>
+              <Text style={styles.webTitle}>Scan Receipt</Text>
+              <Text style={styles.webSubtitle}>
+                Upload a receipt photo, or a screenshot of a Venmo, PayPal, or bank transaction — GPT-4o will extract the details automatically.
+              </Text>
+            </View>
+
+            <View style={styles.webUploadArea}>
+              <Text style={styles.webUploadIcon}>🧾</Text>
+              <TouchableOpacity style={styles.webPrimaryButton} onPress={handleTakePhoto} activeOpacity={0.85}>
+                <Text style={styles.webPrimaryButtonText}>📷  Open Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.webSecondaryButton} onPress={handlePickImage} activeOpacity={0.85}>
+                <Text style={styles.webSecondaryButtonText}>🖼  Upload from Files</Text>
+              </TouchableOpacity>
+              <Text style={styles.webHint}>Supports receipts, Venmo, PayPal, Cash App, bank screenshots</Text>
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.webCloseButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.closeText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ─── Native permission check ───────────────────────────────────────────────
   if (!permission) {
     return <View style={styles.container} />;
   }
@@ -142,12 +251,12 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     );
   }
 
+  // ─── Native camera UI ─────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       {isDemo ? (
         <View style={styles.demoCameraView}>
           <Animated.View style={[styles.guideRect, { transform: [{ scale: guideScale }] }]}>
-            {/* Corner markers */}
             <View style={[styles.corner, styles.cornerTL]} />
             <View style={[styles.corner, styles.cornerTR]} />
             <View style={[styles.corner, styles.cornerBL]} />
@@ -179,9 +288,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
         </Animated.View>
       )}
 
-      {parsedData && (
-        <ResultCard data={parsedData} onSave={handleSave} onRetake={handleRetake} />
-      )}
+      {parsedData && <ResultCard data={parsedData} onSave={handleSave} onRetake={handleRetake} />}
 
       {!parsedData && !isProcessing && (
         <View style={styles.controls}>
@@ -205,6 +312,7 @@ const CORNER_SIZE = 20;
 const CORNER_WIDTH = 3;
 
 const styles = StyleSheet.create({
+  // ── Native styles ──────────────────────────────────────────────────────────
   container: {
     flex: 1,
     backgroundColor: '#000',
@@ -236,34 +344,10 @@ const styles = StyleSheet.create({
     height: CORNER_SIZE,
     borderColor: colors.accent.blue,
   },
-  cornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: CORNER_WIDTH,
-    borderLeftWidth: CORNER_WIDTH,
-    borderTopLeftRadius: 4,
-  },
-  cornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: CORNER_WIDTH,
-    borderRightWidth: CORNER_WIDTH,
-    borderTopRightRadius: 4,
-  },
-  cornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: CORNER_WIDTH,
-    borderLeftWidth: CORNER_WIDTH,
-    borderBottomLeftRadius: 4,
-  },
-  cornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: CORNER_WIDTH,
-    borderRightWidth: CORNER_WIDTH,
-    borderBottomRightRadius: 4,
-  },
+  cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderTopLeftRadius: 4 },
+  cornerTR: { top: 0, right: 0, borderTopWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderTopRightRadius: 4 },
+  cornerBL: { bottom: 0, left: 0, borderBottomWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderBottomLeftRadius: 4 },
+  cornerBR: { bottom: 0, right: 0, borderBottomWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderBottomRightRadius: 4 },
   guideText: {
     ...typography.heading,
     color: colors.text.primary,
@@ -381,5 +465,92 @@ const styles = StyleSheet.create({
   libraryButtonText: {
     ...typography.label,
     color: colors.accent.blue,
+  },
+
+  // ── Web styles ─────────────────────────────────────────────────────────────
+  webContainer: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+    paddingHorizontal: 24,
+    paddingTop: 72,
+    paddingBottom: 40,
+  },
+  webCloseButton: {
+    position: 'absolute',
+    top: 52,
+    left: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.bg.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  webHeader: {
+    alignItems: 'center',
+    marginBottom: 36,
+  },
+  webTitle: {
+    ...typography.title,
+    fontSize: 26,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 10,
+  },
+  webSubtitle: {
+    ...typography.body,
+    color: colors.text.muted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  webUploadArea: {
+    backgroundColor: colors.bg.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    padding: 32,
+    alignItems: 'center',
+  },
+  webUploadIcon: {
+    fontSize: 52,
+    marginBottom: 24,
+  },
+  webPrimaryButton: {
+    backgroundColor: colors.accent.blue,
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  webPrimaryButtonText: {
+    color: '#fff',
+    ...typography.subheading,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  webSecondaryButton: {
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 14,
+    paddingVertical: 15,
+    paddingHorizontal: 28,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    marginBottom: 16,
+  },
+  webSecondaryButtonText: {
+    ...typography.subheading,
+    color: colors.text.primary,
+    fontSize: 16,
+  },
+  webHint: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    textAlign: 'center',
   },
 });
