@@ -96,7 +96,9 @@ export default function SettingsScreen({ navigation }: Props) {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Name</Text>
-            {editingName ? (
+            {isDemo ? (
+              <Text style={styles.rowValue}>{user?.name ?? 'Demo User'}</Text>
+            ) : editingName ? (
               <View style={styles.editRow}>
                 <TextInput
                   style={styles.editInput}
@@ -118,7 +120,9 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <Text style={styles.rowLabel}>Monthly Income</Text>
-            {editingIncome ? (
+            {isDemo ? (
+              <Text style={styles.rowValue}>${user?.monthly_income?.toLocaleString() ?? '0'}</Text>
+            ) : editingIncome ? (
               <View style={styles.editRow}>
                 <TextInput
                   style={styles.editInput}
@@ -156,12 +160,14 @@ export default function SettingsScreen({ navigation }: Props) {
                   </View>
                 </View>
               ))}
-              <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]}>
-                <Text style={styles.addAccountText}>+ Add Account</Text>
-                <Text style={styles.rowArrow}>→</Text>
-              </TouchableOpacity>
+              {!isDemo && (
+                <TouchableOpacity style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('PlaidConnectReal')}>
+                  <Text style={styles.addAccountText}>+ Add Account</Text>
+                  <Text style={styles.rowArrow}>→</Text>
+                </TouchableOpacity>
+              )}
             </>
-          ) : (
+          ) : !isDemo ? (
             <TouchableOpacity
               style={[styles.row, { borderBottomWidth: 0 }]}
               onPress={() => navigation.navigate('PlaidConnectReal') }
@@ -169,6 +175,10 @@ export default function SettingsScreen({ navigation }: Props) {
               <Text style={[styles.addAccountText]}>+ Connect Bank Account</Text>
               <Text style={styles.rowArrow}>→</Text>
             </TouchableOpacity>
+          ) : (
+            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+              <Text style={styles.rowLabel}>No accounts in demo</Text>
+            </View>
           )}
         </View>
 

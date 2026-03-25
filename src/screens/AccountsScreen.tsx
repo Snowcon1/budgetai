@@ -167,14 +167,18 @@ export default function AccountsScreen({ navigation }: Props) {
             <Text style={styles.emptyIcon}>🏦</Text>
             <Text style={styles.emptyTitle}>No accounts connected</Text>
             <Text style={styles.emptyText}>
-              Connect your bank accounts to track checking, savings, and credit balances in real time.
+              {isDemo
+                ? 'Connect your real bank accounts to track checking, savings, and credit balances in real time.'
+                : 'Connect your bank accounts to track checking, savings, and credit balances in real time.'}
             </Text>
-            <TouchableOpacity
-              style={styles.connectButton}
-              onPress={() => navigation.getParent()?.navigate('PlaidConnectReal')}
-            >
-              <Text style={styles.connectButtonText}>+ Connect Bank Account</Text>
-            </TouchableOpacity>
+            {!isDemo && (
+              <TouchableOpacity
+                style={styles.connectButton}
+                onPress={() => navigation.getParent()?.navigate('PlaidConnectReal')}
+              >
+                <Text style={styles.connectButtonText}>+ Connect Bank Account</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <>
@@ -195,12 +199,14 @@ export default function AccountsScreen({ navigation }: Props) {
               </View>
             ))}
 
-            <TouchableOpacity
-              style={styles.addAccountRow}
-              onPress={() => navigation.getParent()?.navigate('PlaidConnectReal')}
-            >
-              <Text style={styles.addAccountText}>+ Add Another Account</Text>
-            </TouchableOpacity>
+            {!isDemo && (
+              <TouchableOpacity
+                style={styles.addAccountRow}
+                onPress={() => navigation.getParent()?.navigate('PlaidConnectReal')}
+              >
+                <Text style={styles.addAccountText}>+ Add Another Account</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 

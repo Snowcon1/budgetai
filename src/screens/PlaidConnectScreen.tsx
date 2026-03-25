@@ -124,7 +124,22 @@ export default function PlaidConnectScreen({ navigation }: Props) {
   const [phase, setPhase] = useState<'intro' | 'linking' | 'syncing'>('intro');
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { userId, connectPlaid } = useAppStore();
+  const { userId, connectPlaid, isDemo } = useAppStore();
+
+  if (isDemo) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.icon}>🔒</Text>
+        <Text style={styles.title}>Demo Mode</Text>
+        <Text style={styles.subtitle}>
+          Bank connections are not available in demo mode. Sign up for a real account to connect your bank and get personalized insights.
+        </Text>
+        <TouchableOpacity style={styles.skipButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.skipText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handlePlaidSuccess = async (publicToken: string, institutionName: string, institutionId: string) => {
     setPhase('syncing');

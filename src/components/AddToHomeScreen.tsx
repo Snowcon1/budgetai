@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
+import { useAppStore } from '../store/useAppStore';
 
 function isMobileWeb(): boolean {
   if (Platform.OS !== 'web') return false;
@@ -26,12 +27,13 @@ function isIOS(): boolean {
 const DISMISSED_KEY = 'add_to_home_dismissed';
 
 export default function AddToHomeScreen() {
+  const { isDemo } = useAppStore();
   const [visible, setVisible] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const slideAnim = React.useRef(new Animated.Value(100)).current;
 
   useEffect(() => {
-    if (!isMobileWeb() || isStandalone()) return;
+    if (isDemo || !isMobileWeb() || isStandalone()) return;
 
     // Don't show if already dismissed
     try {
