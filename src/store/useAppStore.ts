@@ -183,7 +183,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const score = calculateHealthScore(transactions, goals, [], profile.monthly_income ?? 0);
     const streak = calculateStreak(transactions);
-    const challenge = generateWeeklyChallenge(transactions);
+    // Restore saved challenge from profile, or generate a fresh one
+    const challenge = profile.weekly_challenge ?? generateWeeklyChallenge(transactions);
 
     set({
       user: profile,
@@ -487,6 +488,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setWeeklyChallenge: (challenge: WeeklyChallengeData) => {
     set({ weeklyChallenge: challenge });
+    const { isDemo, userId } = get();
+    if (!isDemo && userId) {
+      updateUserProfile(userId, { weekly_challenge: challenge }).catch(() => {});
+    }
   },
 
   setUser: (u: User) => {

@@ -90,6 +90,7 @@ export interface User {
   name: string;
   monthly_income: number;
   is_demo: boolean;
+  weekly_challenge?: WeeklyChallengeData;
 }
 
 export interface HealthScoreBreakdown {
