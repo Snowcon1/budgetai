@@ -12,6 +12,7 @@ import CategoryPill from '../components/CategoryPill';
 import TransactionItem from '../components/TransactionItem';
 import StreakCard from '../components/StreakCard';
 import WeeklyChallenge from '../components/WeeklyChallenge';
+import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
 
 interface Props {
   navigation: {
@@ -26,6 +27,7 @@ export default function HomeScreen({ navigation }: Props) {
     healthScore,
     currentStreak,
     weeklyChallenge,
+    setWeeklyChallenge,
     user,
     accounts,
   } = useAppStore();
@@ -202,8 +204,8 @@ export default function HomeScreen({ navigation }: Props) {
         {transactions.length > 0 && (
           <WeeklyChallenge
             challenge={weeklyChallenge}
-            onOptIn={() => {}}
-            onSkip={() => {}}
+            onOptIn={() => setWeeklyChallenge({ ...weeklyChallenge, opted_in: true })}
+            onSkip={() => setWeeklyChallenge(generateWeeklyChallenge(transactions, weeklyChallenge.category))}
           />
         )}
 

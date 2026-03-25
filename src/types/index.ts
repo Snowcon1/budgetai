@@ -18,7 +18,7 @@ export interface Transaction {
   amount: number;
   category: Category;
   date: string;
-  account_id: string;
+  account_id: string | null;
   is_manual: boolean;
   is_receipt: boolean;
   notes?: string;
@@ -104,4 +104,5 @@ export interface WeeklyChallengeData {
   description: string;
   completed: boolean;
   opted_in: boolean;
+  category?: string;
 }

@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { demoUser, demoAccounts, demoTransactions, demoGoals, demoSubscriptions } from '../utils/demoData';
 import { calculateHealthScore } from '../utils/healthScore';
+import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
 import {
   getTransactions,
   insertTransaction,
@@ -182,6 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const score = calculateHealthScore(transactions, goals, [], profile.monthly_income ?? 0);
     const streak = calculateStreak(transactions);
+    const challenge = generateWeeklyChallenge(transactions);
 
     set({
       user: profile,
@@ -198,7 +200,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       healthScore: score,
       currentStreak: streak,
       isPlaidConnected: accounts.length > 0,
-      weeklyChallenge: defaultWeeklyChallenge,
+      weeklyChallenge: challenge,
     });
   },
 
@@ -218,6 +220,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (useSampleData) {
       const score = calculateHealthScore(demoTransactions, demoGoals, demoSubscriptions, income);
       const streak = calculateStreak(demoTransactions);
+      const challenge = generateWeeklyChallenge(demoTransactions);
       set({
         userId,
         user: profile,
@@ -234,7 +237,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         healthScore: score,
         currentStreak: streak,
         isPlaidConnected: false,
-        weeklyChallenge: defaultWeeklyChallenge,
+        weeklyChallenge: challenge,
       });
     } else {
       const score = calculateHealthScore([], [], [], income);
@@ -289,6 +292,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const transactions = demoTransactions;
     const score = calculateHealthScore(transactions, demoGoals, demoSubscriptions, demoUser.monthly_income);
     const streak = calculateStreak(transactions);
+    const challenge = generateWeeklyChallenge(transactions);
 
     set({
       userId: null,
@@ -305,7 +309,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       healthScore: score,
       currentStreak: streak,
       isPlaidConnected: false,
-      weeklyChallenge: defaultWeeklyChallenge,
+      weeklyChallenge: challenge,
     });
   },
 

@@ -46,11 +46,18 @@ export async function getTransactions(
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function insertTransaction(
   t: Omit<Transaction, 'id'> & { user_id: string }
 ): Promise<SupabaseResponse<Transaction>> {
   try {
-    const { data, error } = await supabase.from('transactions').insert(t).select().single();
+    // Ensure account_id is a valid UUID or null — never an empty/fake string
+    const record = {
+      ...t,
+      account_id: t.account_id && UUID_REGEX.test(t.account_id) ? t.account_id : null,
+    };
+    const { data, error } = await supabase.from('transactions').insert(record).select().single();
     if (error) return { data: null, error: error.message };
     return { data: data as Transaction, error: null };
   } catch (e) {

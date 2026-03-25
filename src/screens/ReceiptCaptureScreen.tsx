@@ -11,6 +11,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import { format } from 'date-fns';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
@@ -175,8 +176,8 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
       merchant: data.merchant,
       amount: -data.total,
       category: data.category,
-      date: new Date().toISOString().split('T')[0],
-      account_id: checkingAccount?.id ?? '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      account_id: checkingAccount?.id ?? null,
       is_manual: true,
       is_receipt: true,
     };
