@@ -134,7 +134,7 @@ serve(async (req) => {
     }
 
     const personaPrompt = PERSONA_PROMPTS[persona as string] ?? PERSONA_PROMPTS.advisor;
-    const systemPrompt = personaPrompt + '\n\n' + FORMAT_RULES;
+    const systemPrompt = FORMAT_RULES + '\n\n' + personaPrompt + '\n\nIMPORTANT: Maintain this persona voice and tone in every single response, no matter how simple or technical the question. Never slip into generic assistant language.';
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -158,7 +158,7 @@ serve(async (req) => {
         model: 'gpt-4o',
         messages,
         max_tokens: 500,
-        temperature: 0.7,
+        temperature: 1.0,
       }),
     });
 

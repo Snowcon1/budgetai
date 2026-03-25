@@ -21,6 +21,7 @@ import DemoModeBanner from '../components/DemoModeBanner';
 import { sendChatMessage } from '../lib/openai';
 import { ChatMessage, ChatSession, ActionCard } from '../types';
 import { format } from 'date-fns';
+import { PERSONA_LIST, PersonaId } from '../constants/personas';
 
 interface Props {
   navigation: { navigate: (screen: string) => void };
@@ -116,6 +117,8 @@ export default function ChatScreen({ navigation, route }: Props) {
   const [isTyping, setIsTyping] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const pickerAnim = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
   const {
     chatHistory,
@@ -131,6 +134,7 @@ export default function ChatScreen({ navigation, route }: Props) {
     healthScore,
     user,
     persona,
+    setPersona,
   } = useAppStore();
 
   const hasMessages = chatHistory.length > 0;
@@ -141,6 +145,22 @@ export default function ChatScreen({ navigation, route }: Props) {
       const r = (Math.random() * 16) | 0;
       return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
     }), []);
+
+  const openPersonaPicker = useCallback(() => {
+    setShowPersonaPicker(true);
+    Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }).start();
+  }, [pickerAnim]);
+
+  const closePersonaPicker = useCallback(() => {
+    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() =>
+      setShowPersonaPicker(false)
+    );
+  }, [pickerAnim]);
+
+  const handleSelectPersona = useCallback((id: PersonaId) => {
+    setPersona(id);
+    closePersonaPicker();
+  }, [setPersona, closePersonaPicker]);
 
   // Start a fresh conversation each time this screen is focused
   useFocusEffect(
@@ -245,16 +265,61 @@ export default function ChatScreen({ navigation, route }: Props) {
         <View style={styles.headerAvatar}>
           <Text style={styles.headerAvatarText}>⚡</Text>
         </View>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Financial Coach</Text>
-          <Text style={styles.headerSub}>Powered by GPT-4o</Text>
-        </View>
+        <TouchableOpacity style={styles.headerPersonaPill} onPress={openPersonaPicker} activeOpacity={0.7}>
+          <Text style={styles.headerPersonaEmoji}>
+            {PERSONA_LIST.find((p) => p.id === persona)?.emoji ?? '📊'}
+          </Text>
+          <View style={styles.headerTextInner}>
+            <Text style={styles.headerTitle}>
+              {PERSONA_LIST.find((p) => p.id === persona)?.name ?? 'Financial Coach'}
+            </Text>
+            <Text style={styles.headerSub}>Tap to switch coach</Text>
+          </View>
+          <Text style={styles.headerChevron}>⌄</Text>
+        </TouchableOpacity>
         {chatSessions.length > 0 && (
           <TouchableOpacity style={styles.historyButton} onPress={() => setShowHistory(true)}>
             <Text style={styles.historyIcon}>🕐</Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Persona Picker Dropdown */}
+      {showPersonaPicker && (
+        <Modal transparent animationType="none" onRequestClose={closePersonaPicker}>
+          <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={closePersonaPicker}>
+            <Animated.View
+              style={[
+                styles.pickerSheet,
+                {
+                  opacity: pickerAnim,
+                  transform: [{ translateY: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }],
+                },
+              ]}
+            >
+              <Text style={styles.pickerTitle}>Choose your coach</Text>
+              {PERSONA_LIST.map((p) => {
+                const active = p.id === persona;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.pickerRow, active && styles.pickerRowActive]}
+                    onPress={() => handleSelectPersona(p.id as PersonaId)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.pickerEmoji}>{p.emoji}</Text>
+                    <View style={styles.pickerInfo}>
+                      <Text style={[styles.pickerName, active && styles.pickerNameActive]}>{p.name}</Text>
+                      <Text style={styles.pickerTagline}>{p.tagline}</Text>
+                    </View>
+                    {active && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       {/* History Modal */}
       <Modal visible={showHistory} transparent animationType="slide" onRequestClose={() => { setShowHistory(false); setSelectedSession(null); }}>
@@ -553,6 +618,93 @@ const styles = StyleSheet.create({
   sendIcon: {
     fontSize: 20,
     color: '#fff',
+    fontWeight: '700',
+  },
+
+  // ── Persona pill in header ──────────────────────────────────────────────────
+  headerPersonaPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerPersonaEmoji: {
+    fontSize: 18,
+  },
+  headerTextInner: {
+    flex: 1,
+  },
+  headerChevron: {
+    fontSize: 18,
+    color: colors.text.muted,
+    marginTop: -2,
+  },
+
+  // ── Persona picker dropdown ─────────────────────────────────────────────────
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 70,
+    paddingHorizontal: 16,
+  },
+  pickerSheet: {
+    backgroundColor: colors.bg.elevated,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  pickerTitle: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderRadius: 10,
+    marginHorizontal: 6,
+  },
+  pickerRowActive: {
+    backgroundColor: colors.accent.blueGlow,
+  },
+  pickerEmoji: {
+    fontSize: 22,
+    width: 28,
+    textAlign: 'center',
+  },
+  pickerInfo: {
+    flex: 1,
+  },
+  pickerName: {
+    ...typography.label,
+    color: colors.text.secondary,
+    fontWeight: '600',
+  },
+  pickerNameActive: {
+    color: colors.text.primary,
+  },
+  pickerTagline: {
+    ...typography.caption,
+    color: colors.text.disabled,
+    marginTop: 1,
+  },
+  pickerCheck: {
+    fontSize: 14,
+    color: colors.accent.blue,
     fontWeight: '700',
   },
 });
