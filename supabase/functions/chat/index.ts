@@ -5,7 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are SnapBudget's AI financial coach. You have access to the user's complete financial picture. Always give specific, actionable advice based on their actual data. Be conversational, direct, and encouraging. Never give generic advice — always reference their specific numbers. When relevant, respond with a JSON object that includes both a 'message' field (your conversational response) and optionally a 'data_card' field for visual data. Keep responses concise — 3-5 sentences max unless a detailed plan is needed.`;
+const SYSTEM_PROMPT = `You are SnapBudget's AI financial coach. You have access to the user's complete financial picture. Always give specific, actionable advice based on their actual data. Be conversational, direct, and encouraging. Never give generic advice — always reference their specific numbers.
+
+RESPONSE FORMAT RULES (follow exactly):
+- Plain text responses: write conversational text directly. No markdown, no bullet points, no bold/italic, no code blocks.
+- Responses with visual data: output ONLY a raw JSON object with NO markdown fences or backticks: { "message": "your text here", "data_card": { "type": "spending_chart", "data": {...} } }
+- NEVER wrap JSON in \`\`\`json blocks. NEVER use backticks. NEVER use markdown of any kind.
+- Keep responses concise — 2-4 sentences max unless a detailed breakdown is requested.`;
+
+function parseGPTResponse(raw: string): Record<string, unknown> {
+  const text = raw.trim();
+
+  // 1. Try parsing the whole thing as JSON (GPT followed instructions perfectly)
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed.message === 'string') return parsed;
+  } catch { /* not pure JSON */ }
+
+  // 2. GPT wrapped JSON in ```json ... ``` — extract and try again
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    try {
+      const parsed = JSON.parse(fenceMatch[1].trim());
+      if (parsed && typeof parsed.message === 'string') return parsed;
+    } catch { /* inner content not valid JSON either */ }
+    // Strip the code fence and return the surrounding text as the message
+    const cleaned = text.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim();
+    return { message: cleaned || text };
+  }
+
+  // 3. Plain text response — strip any stray markdown formatting
+  const plain = text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
+
+  return { message: plain };
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -120,21 +157,10 @@ serve(async (req) => {
     }
 
     const openaiData = await openaiRes.json();
-    const content: string = openaiData.choices?.[0]?.message?.content ?? '';
+    const raw: string = openaiData.choices?.[0]?.message?.content ?? '';
+    const result = parseGPTResponse(raw);
 
-    // Try to parse as structured JSON response
-    try {
-      const parsed = JSON.parse(content);
-      if (parsed.message) {
-        return new Response(JSON.stringify(parsed), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch {
-      // Not JSON, return as plain message
-    }
-
-    return new Response(JSON.stringify({ message: content }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {

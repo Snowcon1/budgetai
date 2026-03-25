@@ -74,6 +74,14 @@ export async function sendChatMessage(
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? `Edge function error: ${response.status}`);
 
-  if (data?.message) return data as AIResponse;
+  if (data?.message) {
+    // Strip any markdown code fences that slipped through
+    data.message = (data.message as string)
+      .replace(/```(?:json)?\s*[\s\S]*?```/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .trim();
+    return data as AIResponse;
+  }
   return { message: 'No response received.' };
 }
