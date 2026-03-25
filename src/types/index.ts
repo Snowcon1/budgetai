@@ -106,4 +106,5 @@ export interface WeeklyChallengeData {
   completed: boolean;
   opted_in: boolean;
   category?: string;
+  target_amount?: number;
 }

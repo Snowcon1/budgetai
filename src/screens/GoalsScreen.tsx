@@ -25,12 +25,17 @@ interface Props {
 }
 
 export default function GoalsScreen({ navigation }: Props) {
-  const { goals, addGoal, user } = useAppStore();
+  const { goals, addGoal, user, accounts } = useAppStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newMonths, setNewMonths] = useState('6');
   const [newType, setNewType] = useState<'savings' | 'debt'>('savings');
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+
+  const linkableAccounts = accounts.filter((a) =>
+    newType === 'savings' ? a.type === 'savings' || a.type === 'checking' : a.type === 'credit'
+  );
 
   const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
 
@@ -52,13 +57,26 @@ export default function GoalsScreen({ navigation }: Props) {
     const monthlyIncome = user?.monthly_income ?? 0;
     const feasibility = monthlyIncome > 0 && monthlySavings < monthlyIncome * 0.2 ? 'achievable' : 'tight';
 
+    // For linked savings accounts, start current_amount at current balance
+    const linkedAccount = linkedAccountId ? accounts.find((a) => a.id === linkedAccountId) : null;
+    let initialAmount = 0;
+    if (linkedAccount) {
+      if (newType === 'savings') {
+        initialAmount = Math.max(0, linkedAccount.balance);
+      } else {
+        // Debt: target is total debt, start at 0 paid off
+        initialAmount = 0;
+      }
+    }
+
     const goal: Goal = {
       id: 'goal_' + Date.now().toString(),
       name: newName.trim(),
       target_amount: targetAmount,
-      current_amount: 0,
+      current_amount: initialAmount,
       target_date: targetDate,
       type: newType,
+      linked_account_id: linkedAccountId ?? undefined,
       created_at: format(new Date(), 'yyyy-MM-dd'),
     };
 
@@ -72,6 +90,7 @@ export default function GoalsScreen({ navigation }: Props) {
     setNewName('');
     setNewTarget('');
     setNewMonths('6');
+    setLinkedAccountId(null);
 
     Alert.alert(
       'Goal Created!',
@@ -159,6 +178,31 @@ export default function GoalsScreen({ navigation }: Props) {
                 <Text style={[styles.typeText, newType === 'debt' && styles.typeTextActive]}>💳 Debt Payoff</Text>
               </TouchableOpacity>
             </View>
+
+            {linkableAccounts.length > 0 && (
+              <>
+                <Text style={styles.fieldLabel}>Link Account (optional)</Text>
+                <View style={styles.accountRow}>
+                  <TouchableOpacity
+                    style={[styles.accountButton, !linkedAccountId && styles.accountButtonActive]}
+                    onPress={() => setLinkedAccountId(null)}
+                  >
+                    <Text style={[styles.accountText, !linkedAccountId && styles.accountTextActive]}>None</Text>
+                  </TouchableOpacity>
+                  {linkableAccounts.map((a) => (
+                    <TouchableOpacity
+                      key={a.id}
+                      style={[styles.accountButton, linkedAccountId === a.id && styles.accountButtonActive]}
+                      onPress={() => setLinkedAccountId(a.id)}
+                    >
+                      <Text style={[styles.accountText, linkedAccountId === a.id && styles.accountTextActive]} numberOfLines={1}>
+                        {a.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <TouchableOpacity style={styles.saveButton} onPress={handleAddGoal}>
               <Text style={styles.saveButtonText}>Create Goal</Text>
@@ -276,6 +320,31 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
   },
   typeTextActive: {
+    color: colors.accent.blue,
+    fontWeight: '600',
+  },
+  accountRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  accountButton: {
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  accountButtonActive: {
+    borderColor: colors.accent.blue,
+    backgroundColor: colors.accent.blueGlow,
+  },
+  accountText: {
+    ...typography.caption,
+    color: colors.text.muted,
+  },
+  accountTextActive: {
     color: colors.accent.blue,
     fontWeight: '600',
   },

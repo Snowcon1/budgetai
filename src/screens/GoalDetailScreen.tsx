@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Modal, TextInput, Alert } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { differenceInDays, format } from 'date-fns';
 import { colors } from '../constants/colors';
@@ -27,10 +27,12 @@ function getGoalEmoji(name: string): string {
 
 export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
-  const { goals } = useAppStore();
+  const { goals, updateGoal, accounts } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneText, setMilestoneText] = useState('');
+  const [showContribution, setShowContribution] = useState(false);
+  const [contributionAmount, setContributionAmount] = useState('');
 
   const ringAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -43,6 +45,23 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
       </View>
     );
   }
+
+  const linkedAccount = goal.linked_account_id
+    ? accounts.find((a) => a.id === goal.linked_account_id)
+    : null;
+  const isLinked = !!linkedAccount;
+
+  const handleAddContribution = () => {
+    const amount = parseFloat(contributionAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      return;
+    }
+    const newAmount = Math.min(goal.current_amount + amount, goal.target_amount);
+    updateGoal(goal.id, { current_amount: newAmount });
+    setShowContribution(false);
+    setContributionAmount('');
+  };
 
   const progress = goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0;
   const percentage = Math.round(progress * 100);
@@ -170,6 +189,25 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           </View>
         </View>
 
+        {/* Linked account badge */}
+        {isLinked && (
+          <View style={styles.linkedBadge}>
+            <Text style={styles.linkedBadgeText}>
+              🔗 Linked to {linkedAccount!.name} · Balance {formatCurrency(linkedAccount!.balance)}
+            </Text>
+          </View>
+        )}
+
+        {/* Add contribution — only for unlinked goals */}
+        {!isLinked && (
+          <TouchableOpacity
+            style={styles.contributionButton}
+            onPress={() => setShowContribution(true)}
+          >
+            <Text style={styles.contributionButtonText}>+ Add Contribution</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={styles.coachButton}
           onPress={() =>
@@ -190,6 +228,35 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
         goalName={goal.name}
         onDismiss={() => setShowMilestone(false)}
       />
+
+      <Modal visible={showContribution} transparent animationType="slide" onRequestClose={() => setShowContribution(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowContribution(false)}>
+          <View
+            style={styles.modalSheet}
+            onStartShouldSetResponder={() => true}
+            // @ts-ignore
+            onClick={(e: { stopPropagation: () => void }) => e.stopPropagation()}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Add Contribution</Text>
+            <Text style={styles.modalSub}>
+              {formatCurrency(goal.current_amount)} saved · {formatCurrency(goal.target_amount - goal.current_amount)} to go
+            </Text>
+            <TextInput
+              style={styles.amountInput}
+              value={contributionAmount}
+              onChangeText={setContributionAmount}
+              placeholder="$0.00"
+              placeholderTextColor={colors.text.disabled}
+              keyboardType="numeric"
+              autoFocus
+            />
+            <TouchableOpacity style={styles.saveButton} onPress={handleAddContribution}>
+              <Text style={styles.saveButtonText}>Save Progress</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -314,5 +381,96 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     textAlign: 'center',
     marginTop: 40,
+  },
+  linkedBadge: {
+    backgroundColor: colors.accent.blueGlow,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.accent.blue + '40',
+  },
+  linkedBadgeText: {
+    ...typography.caption,
+    color: colors.accent.blueLight,
+    textAlign: 'center',
+  },
+  contributionButton: {
+    borderWidth: 1.5,
+    borderColor: colors.accent.green + '80',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: colors.accent.greenGlow,
+  },
+  contributionButtonText: {
+    ...typography.subheading,
+    color: colors.accent.green,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.bg.elevated,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 36,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    borderBottomWidth: 0,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border.default,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    ...typography.title,
+    color: colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalSub: {
+    ...typography.caption,
+    color: colors.text.muted,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  amountInput: {
+    backgroundColor: colors.bg.surface,
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  saveButton: {
+    backgroundColor: colors.accent.green,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: colors.accent.green,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  saveButtonText: {
+    color: '#fff',
+    ...typography.subheading,
+    fontWeight: '600',
   },
 });

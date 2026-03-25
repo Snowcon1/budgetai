@@ -24,7 +24,25 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); deps={**d.get\\(''''dependencies'''',{}\\),**d.get\\(''''devDependencies'''',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\) if any\\(x in k.lower\\(\\) for x in [''''plaid'''',''''webview'''',''''browser'''',''''web-browser'''']\\)]\")",
       "Bash(npx expo:*)",
       "Bash(node -e \"require\\(''./node_modules/react-native-webview/package.json''\\) && console.log\\(''installed''\\)\")",
-      "Bash(curl -s -X POST \"https://bhcdwbmvptchoiwfqwss.supabase.co/functions/v1/plaid-sync\" -H \"Content-Type: application/json\" -d \"{\"\"userId\"\":\"\"1420505f-109b-433f-b2a3-1851b1894af4\"\"}\")"
+      "Bash(curl -s -X POST \"https://bhcdwbmvptchoiwfqwss.supabase.co/functions/v1/plaid-sync\" -H \"Content-Type: application/json\" -d \"{\"\"userId\"\":\"\"1420505f-109b-433f-b2a3-1851b1894af4\"\"}\")",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__list_teams",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__list_projects",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__get_project",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__list_deployments",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__get_deployment_build_logs",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__web_fetch_vercel_url",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__get_runtime_logs",
+      "Bash(vercel --version)",
+      "Bash(npx vercel:*)",
+      "Read(//c/Users/conno/.local/share/com.vercel.cli/**)",
+      "Read(//c/Users/conno/.vercel/**)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k\\) for k in d.get\\(''''mcpServers'''',{}\\).keys\\(\\)]\")",
+      "Bash(env)",
+      "mcp__0ee751f9-cc95-47db-8eab-4c6912a80787__get_deployment",
+      "Bash(xargs grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

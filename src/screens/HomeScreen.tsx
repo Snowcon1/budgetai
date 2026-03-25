@@ -204,6 +204,7 @@ export default function HomeScreen({ navigation }: Props) {
         {transactions.length > 0 && (
           <WeeklyChallenge
             challenge={weeklyChallenge}
+            transactions={transactions}
             onOptIn={() => setWeeklyChallenge({ ...weeklyChallenge, opted_in: true })}
             onSkip={() => setWeeklyChallenge(generateWeeklyChallenge(transactions, weeklyChallenge.category, weeklyChallenge.description))}
           />

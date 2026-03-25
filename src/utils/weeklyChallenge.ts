@@ -80,7 +80,7 @@ export function generateWeeklyChallenge(
 
     // Only return this if it's different from the current challenge
     if (!currentDescription || description !== currentDescription) {
-      return { description, completed: false, opted_in: false, category: bestCategory };
+      return { description, completed: false, opted_in: false, category: bestCategory, target_amount: target };
     }
   }
 

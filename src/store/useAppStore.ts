@@ -508,13 +508,55 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ─── Derived ─────────────────────────────────────────────────────────────────
 
   recalculateHealthScore: () => {
-    const { transactions, goals, subscriptions, user } = get();
+    const { transactions, goals, subscriptions, user, weeklyChallenge, accounts } = get();
     const score = calculateHealthScore(
       transactions,
       goals,
       subscriptions,
       user?.monthly_income ?? 0
     );
-    set({ healthScore: score, currentStreak: calculateStreak(transactions) });
+
+    // Auto-sync current_amount for goals linked to accounts
+    const now = new Date();
+    const updatedGoals = goals.map((g) => {
+      if (!g.linked_account_id) return g;
+      const account = accounts.find((a) => a.id === g.linked_account_id);
+      if (!account) return g;
+      if (g.type === 'savings') {
+        // Savings goal: current_amount = account balance
+        return { ...g, current_amount: Math.max(0, account.balance) };
+      } else {
+        // Debt goal: current_amount = how much has been paid off
+        // target_amount represents original debt, current balance is remaining debt
+        const remaining = Math.abs(account.balance);
+        const paidOff = Math.max(0, g.target_amount - remaining);
+        return { ...g, current_amount: paidOff };
+      }
+    });
+    if (updatedGoals.some((g, i) => g.current_amount !== goals[i].current_amount)) {
+      set({ goals: updatedGoals });
+    }
+
+    // Auto-complete weekly challenge: check if current week's spend is under target
+    const newChallenge = { ...weeklyChallenge };
+    if (weeklyChallenge.opted_in && !weeklyChallenge.completed && weeklyChallenge.category && weeklyChallenge.target_amount) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+      weekStart.setHours(0, 0, 0, 0);
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+      const todayStr = now.toISOString().split('T')[0];
+
+      const weekSpend = transactions
+        .filter((t) => t.category === weeklyChallenge.category && t.amount < 0 && t.date >= weekStartStr && t.date <= todayStr)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+      // Mark complete on Saturday (day 6) or Sunday if under target
+      const isSaturdayOrLater = now.getDay() >= 6 || now.getDay() === 0;
+      if (isSaturdayOrLater && weekSpend < weeklyChallenge.target_amount) {
+        newChallenge.completed = true;
+      }
+    }
+
+    set({ healthScore: score, currentStreak: calculateStreak(transactions), weeklyChallenge: newChallenge });
   },
 }));

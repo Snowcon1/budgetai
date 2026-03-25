@@ -1,16 +1,44 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/theme';
-import { WeeklyChallengeData } from '../types';
+import { WeeklyChallengeData, Transaction } from '../types';
 
 interface Props {
   challenge: WeeklyChallengeData;
+  transactions: Transaction[];
   onOptIn: () => void;
   onSkip: () => void;
 }
 
-export default function WeeklyChallenge({ challenge, onOptIn, onSkip }: Props) {
+export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSkip }: Props) {
+  const progress = useMemo(() => {
+    if (!challenge.category || !challenge.target_amount) return null;
+
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+    weekStart.setHours(0, 0, 0, 0);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const todayStr = now.toISOString().split('T')[0];
+
+    const spent = transactions
+      .filter(
+        (t) =>
+          t.category === challenge.category &&
+          t.amount < 0 &&
+          t.date >= weekStartStr &&
+          t.date <= todayStr
+      )
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    return { spent, target: challenge.target_amount };
+  }, [challenge.category, challenge.target_amount, transactions]);
+
+  const ratio = progress ? Math.min(progress.spent / progress.target, 1) : 0;
+  const isOver = progress ? progress.spent > progress.target : false;
+  const barColor = isOver ? colors.accent.red : ratio > 0.8 ? colors.accent.amber : colors.accent.green;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -18,6 +46,26 @@ export default function WeeklyChallenge({ challenge, onOptIn, onSkip }: Props) {
         <Text style={styles.headerText}>Weekly Challenge</Text>
       </View>
       <Text style={styles.description}>{challenge.description}</Text>
+
+      {/* Live progress bar when opted in (or always if there's a category) */}
+      {progress && (challenge.opted_in || !challenge.completed) && (
+        <View style={styles.progressSection}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${ratio * 100}%` as any, backgroundColor: barColor }]} />
+          </View>
+          <View style={styles.progressLabels}>
+            <Text style={[styles.progressSpent, { color: isOver ? colors.accent.red : colors.text.primary }]}>
+              ${progress.spent.toFixed(0)} spent
+            </Text>
+            <Text style={styles.progressTarget}>
+              {isOver
+                ? `$${(progress.spent - progress.target).toFixed(0)} over limit`
+                : `$${(progress.target - progress.spent).toFixed(0)} remaining`}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {!challenge.opted_in && !challenge.completed && (
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
@@ -29,7 +77,9 @@ export default function WeeklyChallenge({ challenge, onOptIn, onSkip }: Props) {
         </View>
       )}
       {challenge.opted_in && !challenge.completed && (
-        <Text style={styles.progressText}>Challenge accepted! Keep it up.</Text>
+        <Text style={[styles.statusText, { color: isOver ? colors.accent.red : colors.accent.blueLight }]}>
+          {isOver ? '⚠️ Over budget — watch your spending!' : '✓ Challenge accepted! Keep it up.'}
+        </Text>
       )}
       {challenge.completed && (
         <Text style={styles.completedText}>🎉 Challenge completed!</Text>
@@ -67,7 +117,33 @@ const styles = StyleSheet.create({
   description: {
     ...typography.subheading,
     color: colors.text.primary,
-    marginBottom: 14,
+    marginBottom: 12,
+  },
+  progressSection: {
+    marginBottom: 12,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: colors.border.default,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressSpent: {
+    ...typography.caption,
+    fontWeight: '600',
+  },
+  progressTarget: {
+    ...typography.caption,
+    color: colors.text.muted,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -97,9 +173,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  progressText: {
+  statusText: {
     ...typography.label,
-    color: colors.accent.blueLight,
   },
   completedText: {
     ...typography.label,
