@@ -66,7 +66,7 @@ serve(async (req) => {
             content: merchantList,
           },
         ],
-        max_tokens: merchants.length * 10,
+        max_tokens: Math.max(merchants.length * 15, 100),
         temperature: 0,
       }),
     });

@@ -212,7 +212,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error || !profile) {
       set({ isLoading: false });
-      return;
+      throw new Error(error ?? 'Failed to create profile. Please try again.');
     }
 
     if (useSampleData) {

@@ -124,7 +124,6 @@ export default function ChatScreen({ navigation, route }: Props) {
     startNewConversation,
     setWeeklyChallenge,
     addGoal,
-    isDemo,
     accounts,
     transactions,
     goals,
@@ -136,11 +135,17 @@ export default function ChatScreen({ navigation, route }: Props) {
   const hasMessages = chatHistory.length > 0;
   const handleSendRef = useRef<(text?: string) => void>(() => {});
 
+  const generateId = useCallback(() =>
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    }), []);
+
   // Start a fresh conversation each time this screen is focused
   useFocusEffect(
     useCallback(() => {
       startNewConversation();
-    }, [])
+    }, [startNewConversation])
   );
 
   useEffect(() => {
@@ -155,7 +160,7 @@ export default function ChatScreen({ navigation, route }: Props) {
     setInput('');
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: generateId(),
       role: 'user',
       content: messageText,
       created_at: new Date().toISOString(),
@@ -174,12 +179,11 @@ export default function ChatScreen({ navigation, route }: Props) {
           goals,
           healthScore,
           subscriptions,
-        },
-        isDemo
+        }
       );
 
       const assistantMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         role: 'assistant',
         content: response.message,
         created_at: new Date().toISOString(),
@@ -189,7 +193,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       addChatMessage(assistantMsg);
     } catch (error) {
       const errorMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         role: 'assistant',
         content: 'Sorry, I had trouble processing that. Please try again.',
         created_at: new Date().toISOString(),

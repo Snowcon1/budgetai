@@ -76,7 +76,23 @@ serve(async (req) => {
       });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed: { merchant?: unknown; date?: unknown; total?: unknown; category?: unknown };
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      return new Response(JSON.stringify({ error: 'Failed to parse receipt JSON from AI' }), {
+        status: 422,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!parsed.merchant || typeof parsed.total !== 'number') {
+      return new Response(JSON.stringify({ error: 'Receipt data missing required fields' }), {
+        status: 422,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

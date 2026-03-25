@@ -47,6 +47,11 @@ export default function HomeScreen({ navigation }: Props) {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+  const hour = now.getHours();
+  const greeting =
+    hour >= 5 && hour < 12 ? 'Good morning' :
+    hour >= 12 && hour < 17 ? 'Good afternoon' :
+    'Good evening';
 
   const monthlyData = useMemo(() => {
     const monthTxns = transactions.filter((t) => {
@@ -120,7 +125,7 @@ export default function HomeScreen({ navigation }: Props) {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.greetingRow}>
           <View>
-            <Text style={styles.greetingSmall}>Good morning,</Text>
+            <Text style={styles.greetingSmall}>{greeting},</Text>
             <Text style={styles.greeting}>{user?.name ?? 'there'} 👋</Text>
           </View>
         </View>

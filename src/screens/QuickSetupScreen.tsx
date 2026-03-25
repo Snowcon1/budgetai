@@ -42,8 +42,13 @@ export default function QuickSetupScreen({ navigation }: Props) {
     }
 
     setLoading(true);
-    await completeSetup(userId, name.trim(), incomeNum, useSampleData);
-    setLoading(false);
+    try {
+      await completeSetup(userId, name.trim(), incomeNum, useSampleData);
+    } catch (err) {
+      Alert.alert('Setup Failed', err instanceof Error ? err.message : 'Could not create your profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
     // RootNavigator will automatically navigate to MainTabs once user is set
   };
 
