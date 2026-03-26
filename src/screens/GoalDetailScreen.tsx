@@ -179,6 +179,13 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <ConfettiOverlay visible={showCelebration} onComplete={() => setShowCelebration(false)} />
+      <View style={[styles.navBar, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={styles.backButtonText}>‹ Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Goal Details</Text>
+        <View style={{ width: 60 }} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <Text style={styles.emoji}>{getGoalEmoji(goal.name)}</Text>
@@ -480,6 +487,26 @@ function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { retur
   deleteButtonText: {
     ...typography.label,
     color: colors.accent.red,
+  },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: colors.bg.primary,
+  },
+  backButton: {
+    width: 60,
+  },
+  backButtonText: {
+    ...typography.subheading,
+    color: colors.accent.blue,
+  },
+  navTitle: {
+    ...typography.subheading,
+    color: colors.text.primary,
+    fontWeight: '600',
   },
   errorText: {
     ...typography.body,

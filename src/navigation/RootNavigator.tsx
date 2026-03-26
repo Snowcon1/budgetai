@@ -113,7 +113,7 @@ export default function RootNavigator() {
         <>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ headerShown: false }} />
           <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} options={{ title: 'Transaction' }} />
-          <Stack.Screen name="GoalDetail" component={GoalDetailScreen} options={{ title: 'Goal Details' }} />
+          <Stack.Screen name="GoalDetail" component={GoalDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen
             name="ReceiptCapture"
             component={ReceiptCaptureScreen}
