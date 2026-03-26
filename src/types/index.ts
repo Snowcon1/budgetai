@@ -43,6 +43,7 @@ export interface Goal {
   type: 'savings' | 'debt';
   linked_account_id?: string;
   created_at: string;
+  archived?: boolean;
 }
 
 export interface Subscription {

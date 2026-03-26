@@ -83,6 +83,7 @@ interface AppState {
   addGoal: (g: Goal) => Promise<Goal | null>;
   updateGoal: (id: string, changes: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
+  archiveGoal: (id: string) => void;
 
   // Chat
   addChatMessage: (m: ChatMessage) => void;
@@ -528,6 +529,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { isDemo } = get();
     if (!isDemo) {
       supabaseDeleteGoal(id).catch(() => {});
+    }
+  },
+
+  archiveGoal: (id: string) => {
+    set((state) => ({
+      goals: state.goals.map((g) => g.id === id ? { ...g, archived: true } : g),
+    }));
+    const { isDemo } = get();
+    if (!isDemo) {
+      supabaseUpdateGoal(id, { archived: true }).catch(() => {});
     }
   },
 

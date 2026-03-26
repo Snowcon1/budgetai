@@ -32,6 +32,7 @@ export default function GoalsScreen({ navigation }: Props) {
   const { goals, addGoal, user, accounts } = useAppStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showPast, setShowPast] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newMonths, setNewMonths] = useState('6');
@@ -42,9 +43,10 @@ export default function GoalsScreen({ navigation }: Props) {
     newType === 'savings' ? a.type === 'savings' || a.type === 'checking' : a.type === 'credit'
   );
 
-  const activeGoals = goals.filter((g) => (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) < 1);
-  const completedGoals = goals.filter((g) => (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) >= 1);
-  const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
+  const activeGoals = goals.filter((g) => !g.archived && (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) < 1);
+  const completedGoals = goals.filter((g) => !g.archived && (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) >= 1);
+  const pastGoals = goals.filter((g) => g.archived);
+  const totalSaved = goals.filter((g) => !g.archived).reduce((sum, g) => sum + g.current_amount, 0);
 
   const handleAddGoal = async () => {
     if (!newName.trim() || !newTarget.trim()) {
@@ -133,6 +135,24 @@ export default function GoalsScreen({ navigation }: Props) {
               </Text>
             </TouchableOpacity>
             {showCompleted && completedGoals.map((g, index) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                index={index}
+                onPress={() => navigation.navigate('GoalDetail', { goalId: g.id })}
+              />
+            ))}
+          </>
+        )}
+
+        {pastGoals.length > 0 && (
+          <>
+            <TouchableOpacity style={styles.completedToggle} onPress={() => setShowPast((v) => !v)}>
+              <Text style={styles.completedToggleText}>
+                {showPast ? `Hide past goals (${pastGoals.length})` : `${pastGoals.length} past goal${pastGoals.length > 1 ? 's' : ''}`}
+              </Text>
+            </TouchableOpacity>
+            {showPast && pastGoals.map((g, index) => (
               <GoalCard
                 key={g.id}
                 goal={g}

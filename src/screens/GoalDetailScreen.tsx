@@ -34,7 +34,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { goals, updateGoal, deleteGoal, accounts } = useAppStore();
+  const { goals, updateGoal, deleteGoal, archiveGoal, accounts } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneText, setMilestoneText] = useState('');
@@ -137,17 +137,16 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
     setContributionAmount('');
   };
 
-  const handleDelete = () => {
+  const handleArchive = () => {
     Alert.alert(
-      'Delete Goal',
-      `Remove "${goal.name}"? This cannot be undone.`,
+      'Move to Past Goals',
+      `Move "${goal.name}" to your past goals?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: 'Move',
           onPress: () => {
-            deleteGoal(goal.id);
+            archiveGoal(goal.id);
             navigation.goBack();
           },
         },
@@ -292,8 +291,8 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           <Text style={styles.coachButtonText}>⚡ Ask Coach About This Goal</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteButtonText}>Delete Goal</Text>
+        <TouchableOpacity style={styles.deleteButton} onPress={handleArchive}>
+          <Text style={styles.deleteButtonText}>Move to Past Goals</Text>
         </TouchableOpacity>
 
         <View style={{ height: 80 + insets.bottom }} />
