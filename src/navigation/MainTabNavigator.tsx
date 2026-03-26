@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import HomeScreen from '../screens/HomeScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -19,6 +19,7 @@ interface TabIconProps {
 }
 
 function TabIcon({ name, focused, size, hasBadge = false }: TabIconProps) {
+  const { colors } = useTheme();
   const dotScale = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
@@ -31,23 +32,23 @@ function TabIcon({ name, focused, size, hasBadge = false }: TabIconProps) {
   }, [focused]);
 
   return (
-    <View style={tabStyles.wrapper}>
-      <View style={tabStyles.iconContainer}>
+    <View style={tabIconStyles.wrapper}>
+      <View style={tabIconStyles.iconContainer}>
         <Ionicons
           name={focused ? name : (name.replace('-outline', '') + '-outline') as keyof typeof Ionicons.glyphMap}
           size={size}
           color={focused ? colors.accent.blue : colors.text.disabled}
         />
         {hasBadge && (
-          <View style={tabStyles.permanentBadge} />
+          <View style={[tabIconStyles.permanentBadge, { backgroundColor: colors.accent.blue }]} />
         )}
       </View>
-      <Animated.View style={[tabStyles.activeDot, { transform: [{ scale: dotScale }] }]} />
+      <Animated.View style={[tabIconStyles.activeDot, { backgroundColor: colors.accent.blue, transform: [{ scale: dotScale }] }]} />
     </View>
   );
 }
 
-const tabStyles = StyleSheet.create({
+const tabIconStyles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,17 +66,17 @@ const tabStyles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.accent.blue,
   },
   activeDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.accent.blue,
   },
 });
 
 export default function MainTabNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{

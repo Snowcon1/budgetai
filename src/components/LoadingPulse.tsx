@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, ViewStyle, StyleProp, Dimensions } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -8,11 +8,11 @@ interface Props {
   children?: React.ReactNode;
   loading: boolean;
   style?: StyleProp<ViewStyle>;
-  /** Render shimmer skeleton rows instead of wrapping children */
   rows?: number;
 }
 
 function ShimmerRow({ width = '100%', height = 16, marginBottom = 10 }: { width?: string | number; height?: number; marginBottom?: number }) {
+  const { colors } = useTheme();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -31,23 +31,47 @@ function ShimmerRow({ width = '100%', height = 16, marginBottom = 10 }: { width?
   });
 
   return (
-    <View style={[styles.shimmerBase, { height, marginBottom, width: width as any }]}>
+    <View style={[{ backgroundColor: colors.bg.elevated, borderRadius: 6, overflow: 'hidden', height, marginBottom, width: width as any }]}>
       <Animated.View
-        style={[styles.shimmerHighlight, { transform: [{ translateX }] }]}
+        style={[{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          width: 80,
+          backgroundColor: colors.border.default + '80',
+          borderRadius: 6,
+          transform: [{ translateX }],
+        }]}
       />
     </View>
   );
 }
 
 export function SkeletonTransactionRow() {
+  const { colors } = useTheme();
   return (
-    <View style={styles.skeletonRow}>
-      <View style={styles.skeletonIcon} />
-      <View style={styles.skeletonContent}>
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
+    }}>
+      <View style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.bg.elevated,
+        marginRight: 12,
+      }} />
+      <View style={{ flex: 1 }}>
         <ShimmerRow width="60%" height={14} marginBottom={6} />
         <ShimmerRow width="40%" height={10} marginBottom={0} />
       </View>
-      <View style={styles.skeletonRight}>
+      <View style={{ alignItems: 'flex-end' }}>
         <ShimmerRow width={52} height={14} marginBottom={6} />
         <ShimmerRow width={36} height={10} marginBottom={0} />
       </View>
@@ -85,42 +109,3 @@ export default function LoadingPulse({ children, loading, style, rows }: Props) 
 
   return <Animated.View style={[style, { opacity: loading ? opacity : 1 }]}>{children}</Animated.View>;
 }
-
-const styles = StyleSheet.create({
-  shimmerBase: {
-    backgroundColor: colors.bg.elevated,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  shimmerHighlight: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 80,
-    backgroundColor: colors.border.default + '80',
-    borderRadius: 6,
-  },
-  skeletonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  skeletonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.bg.elevated,
-    marginRight: 12,
-  },
-  skeletonContent: {
-    flex: 1,
-  },
-  skeletonRight: {
-    alignItems: 'flex-end',
-  },
-});

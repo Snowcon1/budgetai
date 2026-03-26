@@ -29,6 +29,7 @@ interface Props {
 }
 
 function TypingIndicator() {
+  const { colors } = useTheme();
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
@@ -36,13 +37,11 @@ function TypingIndicator() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Slide in
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 9 }),
     ]).start();
 
-    // Animate dots
     const animDot = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -59,58 +58,32 @@ function TypingIndicator() {
   return (
     <Animated.View
       style={[
-        typingStyles.container,
+        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, marginBottom: 12 },
         { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
       ]}
     >
-      <View style={typingStyles.avatar}>
-        <Text style={typingStyles.avatarText}>⚡</Text>
+      <View style={{
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: colors.accent.blueGlow,
+        borderWidth: 1, borderColor: colors.accent.blue + '30',
+        alignItems: 'center', justifyContent: 'center', marginRight: 8,
+      }}>
+        <Text style={{ fontSize: 14 }}>⚡</Text>
       </View>
-      <View style={typingStyles.bubble}>
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: colors.bg.surface,
+        borderRadius: 16, borderBottomLeftRadius: 4,
+        borderWidth: 1, borderColor: colors.border.default,
+        padding: 14, gap: 6,
+      }}>
         {[dot1, dot2, dot3].map((dot, i) => (
-          <Animated.View key={i} style={[typingStyles.dot, { opacity: dot }]} />
+          <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.text.muted, opacity: dot }} />
         ))}
       </View>
     </Animated.View>
   );
 }
-
-const typingStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(59,130,246,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(59,130,246,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  avatarText: { fontSize: 14 },
-  bubble: {
-    flexDirection: 'row',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#334155',
-    padding: 14,
-    gap: 6,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: '#94A3B8',
-  },
-});
 
 export default function ChatScreen({ navigation, route }: Props) {
   const { colors } = useTheme();

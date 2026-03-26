@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { Subscription } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -12,9 +12,12 @@ interface Props {
 }
 
 export default function SubscriptionItem({ subscription, onCancel }: Props) {
+  const { colors } = useTheme();
   const firstLetter = subscription.merchant.charAt(0).toUpperCase();
   const logoColor = subscription.possibly_unused ? colors.accent.amber : colors.accent.blue;
   const logoBg = subscription.possibly_unused ? colors.accent.amberGlow : colors.accent.blueGlow;
+
+  const styles = makeStyles(colors);
 
   return (
     <View style={[styles.container, subscription.possibly_unused && styles.unusedContainer]}>
@@ -41,62 +44,64 @@ export default function SubscriptionItem({ subscription, onCancel }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  unusedContainer: {
-    borderColor: colors.accent.amber + '40',
-    backgroundColor: colors.accent.amberGlow,
-  },
-  logo: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-  },
-  logoText: {
-    ...typography.heading,
-    fontWeight: '700',
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    ...typography.subheading,
-    color: colors.text.primary,
-  },
-  meta: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 2,
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-  },
-  amount: {
-    ...typography.subheading,
-    color: colors.text.primary,
-  },
-  activeBadge: {
-    ...typography.caption,
-    color: colors.accent.green,
-    marginTop: 2,
-  },
-  cancelText: {
-    ...typography.caption,
-    color: colors.accent.amber,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    unusedContainer: {
+      borderColor: colors.accent.amber + '40',
+      backgroundColor: colors.accent.amberGlow,
+    },
+    logo: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      borderWidth: 1,
+    },
+    logoText: {
+      ...typography.heading,
+      fontWeight: '700',
+    },
+    info: {
+      flex: 1,
+    },
+    name: {
+      ...typography.subheading,
+      color: colors.text.primary,
+    },
+    meta: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: 2,
+    },
+    rightSection: {
+      alignItems: 'flex-end',
+    },
+    amount: {
+      ...typography.subheading,
+      color: colors.text.primary,
+    },
+    activeBadge: {
+      ...typography.caption,
+      color: colors.accent.green,
+      marginTop: 2,
+    },
+    cancelText: {
+      ...typography.caption,
+      color: colors.accent.amber,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+  });
+}

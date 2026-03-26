@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 
 interface Props {
@@ -15,6 +15,7 @@ const suggestions = [
 ];
 
 export default function ChatSuggestions({ onSelect }: Props) {
+  const { colors } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
@@ -31,6 +32,8 @@ export default function ChatSuggestions({ onSelect }: Props) {
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 120, friction: 7 }),
     ]).start(() => onSelect(text));
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -60,61 +63,63 @@ export default function ChatSuggestions({ onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  iconContainer: {
-    alignSelf: 'center',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent.blueGlow,
-    borderWidth: 1,
-    borderColor: colors.accent.blue + '40',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerIcon: {
-    fontSize: 24,
-  },
-  title: {
-    ...typography.title,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.text.muted,
-    textAlign: 'center',
-    marginBottom: 28,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  chip: {
-    width: 148,
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  chipIcon: {
-    fontSize: 22,
-    marginBottom: 10,
-  },
-  chipText: {
-    ...typography.label,
-    color: colors.text.primary,
-    lineHeight: 18,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+    },
+    iconContainer: {
+      alignSelf: 'center',
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.accent.blueGlow,
+      borderWidth: 1,
+      borderColor: colors.accent.blue + '40',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    headerIcon: {
+      fontSize: 24,
+    },
+    title: {
+      ...typography.title,
+      color: colors.text.primary,
+      textAlign: 'center',
+      marginBottom: 6,
+    },
+    subtitle: {
+      ...typography.body,
+      color: colors.text.muted,
+      textAlign: 'center',
+      marginBottom: 28,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      justifyContent: 'center',
+    },
+    chip: {
+      width: 148,
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    chipIcon: {
+      fontSize: 22,
+      marginBottom: 10,
+    },
+    chipText: {
+      ...typography.label,
+      color: colors.text.primary,
+      lineHeight: 18,
+    },
+  });
+}

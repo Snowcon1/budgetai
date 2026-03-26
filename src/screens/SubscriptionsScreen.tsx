@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function SubscriptionsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const { subscriptions } = useAppStore();
 
   const activeSubs = subscriptions.filter((s) => s.is_active);
@@ -21,6 +22,8 @@ export default function SubscriptionsScreen({ navigation }: Props) {
   const usedSubs = activeSubs.filter((s) => !s.possibly_unused);
   const totalMonthly = activeSubs.reduce((sum, s) => sum + s.amount, 0);
   const potentialSavings = unusedSubs.reduce((sum, s) => sum + s.amount, 0);
+
+  const styles = makeStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -65,61 +68,63 @@ export default function SubscriptionsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  totalLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  totalAmount: {
-    ...typography.hero,
-    fontSize: 42,
-    color: colors.text.primary,
-  },
-  annualNote: {
-    ...typography.caption,
-    color: colors.text.secondary,
-    marginTop: 4,
-  },
-  unusedSection: {
-    backgroundColor: colors.accent.amberGlow,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.accent.amber + '30',
-    padding: 16,
-    marginBottom: 24,
-  },
-  unusedHeader: {
-    ...typography.heading,
-    fontWeight: '700',
-    color: colors.accent.amber,
-    marginBottom: 4,
-  },
-  unusedSubtext: {
-    ...typography.caption,
-    color: colors.text.secondary,
-    marginBottom: 12,
-  },
-  activeSection: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    totalLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
+    },
+    totalAmount: {
+      ...typography.hero,
+      fontSize: 42,
+      color: colors.text.primary,
+    },
+    annualNote: {
+      ...typography.caption,
+      color: colors.text.secondary,
+      marginTop: 4,
+    },
+    unusedSection: {
+      backgroundColor: colors.accent.amberGlow,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.accent.amber + '30',
+      padding: 16,
+      marginBottom: 24,
+    },
+    unusedHeader: {
+      ...typography.heading,
+      fontWeight: '700',
+      color: colors.accent.amber,
+      marginBottom: 4,
+    },
+    unusedSubtext: {
+      ...typography.caption,
+      color: colors.text.secondary,
+      marginBottom: 12,
+    },
+    activeSection: {
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      ...typography.heading,
+      color: colors.text.primary,
+      marginBottom: 12,
+    },
+  });
+}

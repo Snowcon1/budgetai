@@ -9,7 +9,7 @@ import {
   Share,
   Platform,
 } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -30,33 +30,8 @@ interface StatCard {
   delay: number;
 }
 
-function useCountUp(target: number, duration: number = 1000, delay: number = 0) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const start = Date.now();
-      const tick = () => {
-        const elapsed = Date.now() - start;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        setDisplay(Math.round(eased * target));
-        if (progress < 1) setTimeout(tick, 16);
-      };
-      tick();
-    }, delay);
-    return () => clearTimeout(timeout);
-  }, [target, duration, delay]);
-  return display;
-}
-
-function AnimatedStatCard({
-  icon,
-  label,
-  value,
-  color,
-  glowColor,
-  delay,
-}: StatCard) {
+function AnimatedStatCard({ icon, label, value, color, glowColor, delay }: StatCard) {
+  const { colors } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
 
@@ -81,20 +56,28 @@ function AnimatedStatCard({
   return (
     <Animated.View
       style={[
-        styles.statCard,
+        {
+          width: (SCREEN_WIDTH - 48 - 12) / 2,
+          backgroundColor: colors.bg.surface,
+          borderRadius: 20,
+          padding: 18,
+          borderWidth: 1,
+          alignItems: 'flex-start',
+        },
         { borderColor: color + '40', opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
       ]}
     >
-      <View style={[styles.statIconCircle, { backgroundColor: glowColor }]}>
-        <Text style={styles.statIcon}>{icon}</Text>
+      <View style={[{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }, { backgroundColor: glowColor }]}>
+        <Text style={{ fontSize: 20 }}>{icon}</Text>
       </View>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[{ ...typography.heading, fontWeight: '700', marginBottom: 4, letterSpacing: -0.5 }, { color }]}>{value}</Text>
+      <Text style={{ ...typography.caption, color: colors.text.muted, letterSpacing: 0.3 }}>{label}</Text>
     </Animated.View>
   );
 }
 
 export default function WeeklyRecapScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
   const { transactions, goals, user } = useAppStore();
   const weekNumber = route.params?.weekNumber ?? Math.ceil(new Date().getDate() / 7) + (new Date().getMonth() * 4);
 
@@ -102,7 +85,6 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
   const headerSlide = useRef(new Animated.Value(-20)).current;
   const buttonFade = useRef(new Animated.Value(0)).current;
 
-  // Calculate weekly stats
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -117,7 +99,6 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
     return sum + (g.current_amount ?? 0);
   }, 0);
 
-  // Count categories under budget — simplified: categories with < avg spend
   const categorySpend: Record<string, number> = {};
   weekTransactions.forEach((t) => {
     if (!categorySpend[t.category]) categorySpend[t.category] = 0;
@@ -127,7 +108,7 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
   const avgSpend = totalSpent / Math.max(categoryCounts, 1);
   const underBudget = Object.values(categorySpend).filter((v) => v < avgSpend).length;
 
-  const healthScoreChange = Math.floor(Math.random() * 5) + 1; // Demo: +1 to +5
+  const healthScoreChange = Math.floor(Math.random() * 5) + 1;
 
   useEffect(() => {
     Animated.parallel([
@@ -154,58 +135,26 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
     }
   };
 
+  const styles = makeStyles(colors);
+
   const statCards: StatCard[] = [
-    {
-      icon: '💸',
-      label: 'Total Spent',
-      value: formatCurrency(totalSpent),
-      color: colors.accent.red,
-      glowColor: colors.accent.redGlow,
-      delay: 200,
-    },
-    {
-      icon: '🎯',
-      label: 'Saved to Goals',
-      value: formatCurrency(goalSavings),
-      color: colors.accent.green,
-      glowColor: colors.accent.greenGlow,
-      delay: 350,
-    },
-    {
-      icon: '✅',
-      label: 'Under Budget',
-      value: `${underBudget} cats`,
-      color: colors.accent.blue,
-      glowColor: colors.accent.blueGlow,
-      delay: 500,
-    },
-    {
-      icon: '📈',
-      label: 'Health Score',
-      value: `+${healthScoreChange} pts`,
-      color: colors.accent.amber,
-      glowColor: colors.accent.amberGlow,
-      delay: 650,
-    },
+    { icon: '💸', label: 'Total Spent', value: formatCurrency(totalSpent), color: colors.accent.red, glowColor: colors.accent.redGlow, delay: 200 },
+    { icon: '🎯', label: 'Saved to Goals', value: formatCurrency(goalSavings), color: colors.accent.green, glowColor: colors.accent.greenGlow, delay: 350 },
+    { icon: '✅', label: 'Under Budget', value: `${underBudget} cats`, color: colors.accent.blue, glowColor: colors.accent.blueGlow, delay: 500 },
+    { icon: '📈', label: 'Health Score', value: `+${healthScoreChange} pts`, color: colors.accent.amber, glowColor: colors.accent.amberGlow, delay: 650 },
   ];
 
   return (
     <View style={styles.container}>
-      {/* Background gradient-like orbs */}
       <View style={styles.orb1} />
       <View style={styles.orb2} />
 
-      {/* Close button */}
       <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
         <Text style={styles.closeText}>✕</Text>
       </TouchableOpacity>
 
-      {/* Header */}
       <Animated.View
-        style={[
-          styles.header,
-          { opacity: headerFade, transform: [{ translateY: headerSlide }] },
-        ]}
+        style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}
       >
         <Text style={styles.weekLabel}>WEEK {weekNumber}</Text>
         <Text style={styles.headline}>Your Recap</Text>
@@ -214,17 +163,14 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
         </Text>
       </Animated.View>
 
-      {/* Stats grid */}
       <View style={styles.grid}>
         {statCards.map((card) => (
           <AnimatedStatCard key={card.label} {...card} />
         ))}
       </View>
 
-      {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Highlight message */}
       <Animated.View style={[styles.highlightRow, { opacity: buttonFade }]}>
         <Text style={styles.highlightIcon}>🔥</Text>
         <Text style={styles.highlightText}>
@@ -236,13 +182,8 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
         </Text>
       </Animated.View>
 
-      {/* Share button */}
       <Animated.View style={[styles.buttonContainer, { opacity: buttonFade }]}>
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={handleShare}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.85}>
           <Text style={styles.shareIcon}>↑</Text>
           <Text style={styles.shareText}>Share My Week</Text>
         </TouchableOpacity>
@@ -254,160 +195,132 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 40,
-  },
-  orb1: {
-    position: 'absolute',
-    top: -80,
-    right: -60,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: colors.accent.blueGlow,
-  },
-  orb2: {
-    position: 'absolute',
-    bottom: 60,
-    left: -80,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: colors.accent.greenGlow,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 56 : 36,
-    right: 24,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.bg.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    zIndex: 10,
-  },
-  closeText: {
-    color: colors.text.muted,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  header: {
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  weekLabel: {
-    ...typography.caption,
-    color: colors.accent.blue,
-    letterSpacing: 2,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  headline: {
-    ...typography.hero,
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  subheadline: {
-    ...typography.body,
-    color: colors.text.muted,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    width: (SCREEN_WIDTH - 48 - 12) / 2,
-    backgroundColor: colors.bg.surface,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    alignItems: 'flex-start',
-  },
-  statIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  statIcon: {
-    fontSize: 20,
-  },
-  statValue: {
-    ...typography.heading,
-    fontWeight: '700',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    letterSpacing: 0.3,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.subtle,
-    marginBottom: 20,
-  },
-  highlightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 28,
-  },
-  highlightIcon: {
-    fontSize: 22,
-  },
-  highlightText: {
-    ...typography.subheading,
-    color: colors.text.secondary,
-    flex: 1,
-  },
-  buttonContainer: {
-    gap: 12,
-    marginTop: 'auto' as any,
-  },
-  shareButton: {
-    backgroundColor: colors.accent.blue,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: colors.accent.blue,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  shareIcon: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  shareText: {
-    color: '#fff',
-    ...typography.subheading,
-    fontWeight: '700',
-  },
-  skipButton: {
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  skipText: {
-    ...typography.label,
-    color: colors.text.muted,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+      paddingHorizontal: 24,
+      paddingTop: Platform.OS === 'ios' ? 60 : 40,
+      paddingBottom: 40,
+    },
+    orb1: {
+      position: 'absolute',
+      top: -80,
+      right: -60,
+      width: 260,
+      height: 260,
+      borderRadius: 130,
+      backgroundColor: colors.accent.blueGlow,
+    },
+    orb2: {
+      position: 'absolute',
+      bottom: 60,
+      left: -80,
+      width: 200,
+      height: 200,
+      borderRadius: 100,
+      backgroundColor: colors.accent.greenGlow,
+    },
+    closeButton: {
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? 56 : 36,
+      right: 24,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.bg.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      zIndex: 10,
+    },
+    closeText: {
+      color: colors.text.muted,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    header: {
+      marginTop: 16,
+      marginBottom: 32,
+    },
+    weekLabel: {
+      ...typography.caption,
+      color: colors.accent.blue,
+      letterSpacing: 2,
+      fontWeight: '700',
+      marginBottom: 8,
+    },
+    headline: {
+      ...typography.hero,
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    subheadline: {
+      ...typography.body,
+      color: colors.text.muted,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 24,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border.subtle,
+      marginBottom: 20,
+    },
+    highlightRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 28,
+    },
+    highlightIcon: {
+      fontSize: 22,
+    },
+    highlightText: {
+      ...typography.subheading,
+      color: colors.text.secondary,
+      flex: 1,
+    },
+    buttonContainer: {
+      gap: 12,
+      marginTop: 'auto' as any,
+    },
+    shareButton: {
+      backgroundColor: colors.accent.blue,
+      borderRadius: 16,
+      paddingVertical: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      shadowColor: colors.accent.blue,
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+    shareIcon: {
+      color: '#fff',
+      fontSize: 18,
+      fontWeight: '700',
+    },
+    shareText: {
+      color: '#fff',
+      ...typography.subheading,
+      fontWeight: '700',
+    },
+    skipButton: {
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    skipText: {
+      ...typography.label,
+      color: colors.text.muted,
+    },
+  });
+}

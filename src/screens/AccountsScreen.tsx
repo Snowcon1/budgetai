@@ -8,7 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { format } from 'date-fns';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import DemoModeBanner from '../components/DemoModeBanner';
@@ -35,6 +35,7 @@ function fmtShort(n: number): string {
 }
 
 export default function AccountsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const { accounts, isDemo, userId, loadUserData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,10 +45,11 @@ export default function AccountsScreen({ navigation }: Props) {
 
   const totalChecking = checking.reduce((s, a) => s + a.balance, 0);
   const totalSavings = savings.reduce((s, a) => s + a.balance, 0);
-  // Plaid returns credit card balances as positive numbers (amount owed)
   const totalCredit = credit.reduce((s, a) => s + Math.abs(a.balance), 0);
   const netWorth = totalChecking + totalSavings - totalCredit;
   const totalCash = totalChecking + totalSavings;
+
+  const styles = makeStyles(colors);
 
   const handleRefresh = async () => {
     if (!isDemo && userId) {
@@ -57,8 +59,13 @@ export default function AccountsScreen({ navigation }: Props) {
     }
   };
 
+  const sections: { label: string; accounts: Account[]; total: number; color: string }[] = [
+    { label: 'CHECKING', accounts: checking, total: totalChecking, color: colors.accent.blue },
+    { label: 'SAVINGS', accounts: savings, total: totalSavings, color: colors.accent.green },
+    { label: 'CREDIT', accounts: credit, total: -totalCredit, color: colors.accent.red },
+  ].filter((s) => s.accounts.length > 0);
+
   const renderAccount = (account: Account) => {
-    // Credit cards: positive balance = amount owed (debt) → show as negative/red
     const isDebt = account.type === 'credit' && account.balance > 0;
     const isNeg = account.balance < 0 || isDebt;
     const displayBalance = isDebt ? -Math.abs(account.balance) : account.balance;
@@ -90,12 +97,6 @@ export default function AccountsScreen({ navigation }: Props) {
     );
   };
 
-  const sections: { label: string; accounts: Account[]; total: number; color: string }[] = [
-    { label: 'CHECKING', accounts: checking, total: totalChecking, color: colors.accent.blue },
-    { label: 'SAVINGS', accounts: savings, total: totalSavings, color: colors.accent.green },
-    { label: 'CREDIT', accounts: credit, total: -totalCredit, color: colors.accent.red },
-  ].filter((s) => s.accounts.length > 0);
-
   return (
     <View style={styles.container}>
       <DemoModeBanner />
@@ -110,7 +111,6 @@ export default function AccountsScreen({ navigation }: Props) {
           />
         }
       >
-        {/* Header */}
         <View style={styles.headerRow}>
           <Text style={styles.screenTitle}>Accounts</Text>
           <TouchableOpacity
@@ -121,7 +121,6 @@ export default function AccountsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Net Worth Card */}
         <View style={styles.netWorthCard}>
           <Text style={styles.netWorthLabel}>Net Worth</Text>
           <Text style={[styles.netWorthValue, netWorth < 0 && styles.balanceRed]}>
@@ -216,254 +215,245 @@ export default function AccountsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  screenTitle: {
-    ...typography.title,
-    color: colors.text.primary,
-  },
-  settingsBtn: {
-    padding: 4,
-  },
-  settingsIcon: {
-    fontSize: 22,
-  },
-
-  // Net worth card
-  netWorthCard: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    padding: 24,
-    marginBottom: 28,
-    alignItems: 'center',
-  },
-  netWorthLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  netWorthValue: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: colors.text.primary,
-    letterSpacing: -1,
-    marginBottom: 20,
-  },
-  netBreakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 0,
-  },
-  netBreakdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  netDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  netBreakdownLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginBottom: 2,
-  },
-  netBreakdownValue: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  netDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: colors.border.subtle,
-  },
-  balanceRed: {
-    color: colors.accent.red,
-  },
-
-  // Sections
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  sectionTitle: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  sectionTotal: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    fontWeight: '600',
-  },
-  accountGroup: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    overflow: 'hidden',
-  },
-
-  // Account card
-  accountCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-  },
-  accountIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: colors.bg.elevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  accountIcon: {
-    fontSize: 20,
-  },
-  accountInfo: {
-    flex: 1,
-  },
-  accountName: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    marginBottom: 2,
-  },
-  accountMeta: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginBottom: 2,
-  },
-  accountSync: {
-    fontSize: 10,
-    color: colors.text.disabled,
-  },
-  accountBalanceWrap: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  accountBalance: {
-    ...typography.subheading,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  typeBadge: {
-    backgroundColor: colors.accent.blueGlow ?? colors.accent.blue + '20',
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.accent.blue,
-  },
-  badgeSavings: {
-    backgroundColor: colors.accent.greenGlow ?? colors.accent.green + '20',
-  },
-  badgeSavingsText: {
-    color: colors.accent.green,
-  },
-  badgeCredit: {
-    backgroundColor: colors.accent.redGlow ?? colors.accent.red + '20',
-  },
-  badgeCreditText: {
-    color: colors.accent.red,
-  },
-
-  // Add account
-  addAccountRow: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: 14,
-    borderStyle: 'dashed',
-    marginTop: 4,
-  },
-  addAccountText: {
-    ...typography.label,
-    color: colors.accent.blue,
-    fontWeight: '600',
-  },
-
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 16,
-  },
-  emptyIcon: {
-    fontSize: 52,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 28,
-  },
-  connectButton: {
-    backgroundColor: colors.accent.blue,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    shadowColor: colors.accent.blue,
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  connectButtonText: {
-    color: '#fff',
-    ...typography.label,
-    fontWeight: '700',
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+    },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    screenTitle: {
+      ...typography.title,
+      color: colors.text.primary,
+    },
+    settingsBtn: {
+      padding: 4,
+    },
+    settingsIcon: {
+      fontSize: 22,
+    },
+    netWorthCard: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      padding: 24,
+      marginBottom: 28,
+      alignItems: 'center',
+    },
+    netWorthLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 6,
+    },
+    netWorthValue: {
+      fontSize: 40,
+      fontWeight: '700',
+      color: colors.text.primary,
+      letterSpacing: -1,
+      marginBottom: 20,
+    },
+    netBreakdownRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    netBreakdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+    },
+    netDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    netBreakdownLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginBottom: 2,
+    },
+    netBreakdownValue: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      fontWeight: '600',
+    },
+    netDivider: {
+      width: 1,
+      height: 32,
+      backgroundColor: colors.border.subtle,
+    },
+    balanceRed: {
+      color: colors.accent.red,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    sectionLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    sectionDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    sectionTitle: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    sectionTotal: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      fontWeight: '600',
+    },
+    accountGroup: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      overflow: 'hidden',
+    },
+    accountCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border.subtle,
+    },
+    accountIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      backgroundColor: colors.bg.elevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    accountIcon: {
+      fontSize: 20,
+    },
+    accountInfo: {
+      flex: 1,
+    },
+    accountName: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      marginBottom: 2,
+    },
+    accountMeta: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginBottom: 2,
+    },
+    accountSync: {
+      fontSize: 10,
+      color: colors.text.disabled,
+    },
+    accountBalanceWrap: {
+      alignItems: 'flex-end',
+      gap: 4,
+    },
+    accountBalance: {
+      ...typography.subheading,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    typeBadge: {
+      backgroundColor: colors.accent.blueGlow,
+      borderRadius: 5,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    typeBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: colors.accent.blue,
+    },
+    badgeSavings: {
+      backgroundColor: colors.accent.greenGlow,
+    },
+    badgeSavingsText: {
+      color: colors.accent.green,
+    },
+    badgeCredit: {
+      backgroundColor: colors.accent.redGlow,
+    },
+    badgeCreditText: {
+      color: colors.accent.red,
+    },
+    addAccountRow: {
+      paddingVertical: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: 14,
+      borderStyle: 'dashed',
+      marginTop: 4,
+    },
+    addAccountText: {
+      ...typography.label,
+      color: colors.accent.blue,
+      fontWeight: '600',
+    },
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 48,
+      paddingHorizontal: 16,
+    },
+    emptyIcon: {
+      fontSize: 52,
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      ...typography.heading,
+      color: colors.text.primary,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    emptyText: {
+      ...typography.body,
+      color: colors.text.muted,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: 28,
+    },
+    connectButton: {
+      backgroundColor: colors.accent.blue,
+      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      shadowColor: colors.accent.blue,
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
+    connectButtonText: {
+      color: '#fff',
+      ...typography.label,
+      fontWeight: '700',
+    },
+  });
+}
