@@ -19,6 +19,7 @@ import { parseReceipt } from '../utils/parseReceipt';
 import ResultCard from '../components/ResultCard';
 import { Category, Transaction } from '../types';
 import { hapticMedium, hapticSuccess, hapticError } from '../utils/haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   navigation: { goBack: () => void };
@@ -70,6 +71,7 @@ function openFileInput(capture?: boolean): Promise<string | null> {
 
 export default function ReceiptCaptureScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedData, setParsedData] = useState<{
@@ -300,7 +302,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
       {parsedData && <ResultCard data={parsedData} onSave={handleSave} onRetake={handleRetake} />}
 
       {!parsedData && !isProcessing && (
-        <View style={styles.controls}>
+        <View style={[styles.controls, { bottom: 44 + insets.bottom }]}>
           <TouchableOpacity style={styles.captureButton} onPress={handleTakePhoto}>
             <View style={styles.captureInner} />
           </TouchableOpacity>

@@ -16,6 +16,7 @@ import { Category, Transaction } from '../types';
 import TransactionItem from '../components/TransactionItem';
 import DemoModeBanner from '../components/DemoModeBanner';
 import { allCategories, categoryEmojis } from '../constants/categories';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   navigation: {
@@ -25,6 +26,7 @@ interface Props {
 
 export default function TransactionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { transactions } = useAppStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
@@ -113,7 +115,7 @@ export default function TransactionsScreen({ navigation }: Props) {
       <SectionList
         sections={filteredGrouped}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 90 + insets.bottom }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent.blue} />
         }
@@ -137,7 +139,7 @@ export default function TransactionsScreen({ navigation }: Props) {
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: 24 + insets.bottom }]}
         onPress={() => navigation.navigate('ReceiptCapture')}
         activeOpacity={0.8}
       >

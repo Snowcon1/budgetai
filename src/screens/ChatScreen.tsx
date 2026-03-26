@@ -13,6 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import ChatBubble from '../components/ChatBubble';
@@ -87,6 +88,7 @@ function TypingIndicator() {
 
 export default function ChatScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -353,7 +355,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
+        keyboardVerticalOffset={90 + insets.bottom}
       >
         {!hasMessages && !isTyping ? (
           <ChatSuggestions onSelect={(text) => handleSend(text)} />
@@ -375,7 +377,7 @@ export default function ChatScreen({ navigation, route }: Props) {
             {isTyping && <TypingIndicator />}
           </ScrollView>
         )}
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: 12 + insets.bottom }]}>
           <TextInput
             style={styles.input}
             placeholder="Ask anything about your finances..."

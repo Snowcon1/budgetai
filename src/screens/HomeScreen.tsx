@@ -21,6 +21,7 @@ import { generateWeeklySummary } from '../utils/weeklySummary';
 import { useStreakFreeze } from '../utils/streakFreeze';
 import { hapticSuccess } from '../utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   navigation: {
@@ -30,6 +31,7 @@ interface Props {
 
 export default function HomeScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const {
     transactions,
     goals,
@@ -364,7 +366,7 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.fabWrapper, { transform: [{ scale: fabScale }] }]}>
+      <Animated.View style={[styles.fabWrapper, { bottom: 24 + insets.bottom, transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity
           style={styles.fab}
           onPress={handleFabPress}
