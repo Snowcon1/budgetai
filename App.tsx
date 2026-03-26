@@ -3,32 +3,42 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View } from 'react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import AddToHomeScreen from './src/components/AddToHomeScreen';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 
 function AppContent() {
   const { isDark, colors } = useTheme();
+
+  const navTheme = {
+    dark: isDark,
+    colors: {
+      primary: colors.accent.blue,
+      background: colors.bg.primary,
+      card: colors.bg.surface,
+      text: colors.text.primary,
+      border: colors.border.subtle,
+      notification: colors.accent.red,
+    },
+  };
+
   return (
-    <NavigationContainer>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg.primary }}>
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <RootNavigator />
         <AddToHomeScreen />
-      </View>
-    </NavigationContainer>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <AppContent />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
