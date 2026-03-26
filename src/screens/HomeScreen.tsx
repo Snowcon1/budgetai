@@ -56,7 +56,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   // Load category view preference
   useEffect(() => {
-    AsyncStorage.getItem('snapbudget_category_view').then((v) => {
+    AsyncStorage.getItem('pulse_category_view').then((v) => {
       if (v === 'pills' || v === 'bars') setCategoryView(v);
     });
   }, []);
@@ -80,7 +80,7 @@ export default function HomeScreen({ navigation }: Props) {
   const toggleCategoryView = () => {
     const next = categoryView === 'bars' ? 'pills' : 'bars';
     setCategoryView(next);
-    AsyncStorage.setItem('snapbudget_category_view', next).catch(() => {});
+    AsyncStorage.setItem('pulse_category_view', next).catch(() => {});
   };
 
   // FAB idle pulse

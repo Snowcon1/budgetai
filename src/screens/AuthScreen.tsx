@@ -128,7 +128,7 @@ export default function AuthScreen({ navigation }: Props) {
       >
         <View style={styles.logoSection}>
           <Text style={styles.logoIcon}>⚡</Text>
-          <Text style={styles.logo}>SnapBudget</Text>
+          <Text style={styles.logo}>Pulse</Text>
           <Text style={styles.tagline}>Your AI-powered financial coach</Text>
         </View>
 

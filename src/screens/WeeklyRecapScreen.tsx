@@ -127,7 +127,7 @@ export default function WeeklyRecapScreen({ navigation, route }: Props) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `📊 My Week ${weekNumber} SnapBudget Recap\n\n💸 Spent: ${formatCurrency(totalSpent)}\n🎯 Saved toward goals: ${formatCurrency(goalSavings)}\n✅ ${underBudget} categories under budget\n📈 Health score: +${healthScoreChange} pts\n\nTracking my finances with SnapBudget!`,
+        message: `📊 My Week ${weekNumber} Pulse Recap\n\n💸 Spent: ${formatCurrency(totalSpent)}\n🎯 Saved toward goals: ${formatCurrency(goalSavings)}\n✅ ${underBudget} categories under budget\n📈 Health score: +${healthScoreChange} pts\n\nTracking my finances with Pulse!`,
         title: `Week ${weekNumber} Financial Recap`,
       });
     } catch {

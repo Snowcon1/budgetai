@@ -348,7 +348,7 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>SnapBudget v1.0.0</Text>
+        <Text style={styles.version}>Pulse v1.0.0</Text>
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>

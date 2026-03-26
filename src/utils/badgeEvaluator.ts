@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BADGES, BadgeId, BadgeContext } from '../constants/badges';
 
-const STORAGE_KEY = 'snapbudget_badges';
+const STORAGE_KEY = 'pulse_badges';
 
 export async function loadEarnedBadges(): Promise<BadgeId[]> {
   try {

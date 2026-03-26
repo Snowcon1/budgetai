@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const FREEZE_MAX = 3;
 
-const FREEZE_COUNT_KEY = 'snapbudget_freeze_count';
-const FROZEN_DATES_KEY = 'snapbudget_frozen_dates';
+const FREEZE_COUNT_KEY = 'pulse_freeze_count';
+const FROZEN_DATES_KEY = 'pulse_frozen_dates';
 
 export async function loadFreezesRemaining(): Promise<number> {
   const val = await AsyncStorage.getItem(FREEZE_COUNT_KEY).catch(() => null);

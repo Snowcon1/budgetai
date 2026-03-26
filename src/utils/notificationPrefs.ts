@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'snapbudget_notif_prefs';
+const STORAGE_KEY = 'pulse_notif_prefs';
 
 export interface NotificationPrefs {
   weeklyRecap: { enabled: boolean; hour: number; weekday: number };

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'snapbudget_theme';
+const STORAGE_KEY = 'pulse_theme';
 
 export type ThemeScheme = 'system' | 'dark' | 'light';
 

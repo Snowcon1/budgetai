@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SnapBudget",
-    "slug": "snapbudget",
+    "name": "Pulse",
+    "slug": "pulse-finance",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,11 +14,11 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.snapbudget.app",
+      "bundleIdentifier": "com.pulsefi.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "SnapBudget needs camera access to scan receipts.",
-        "NSPhotoLibraryUsageDescription": "SnapBudget needs photo library access to import receipt images.",
-        "NSPhotoLibraryAddUsageDescription": "SnapBudget needs to save receipt images to your photo library."
+        "NSCameraUsageDescription": "Pulse needs camera access to scan receipts.",
+        "NSPhotoLibraryUsageDescription": "Pulse needs photo library access to import receipt images.",
+        "NSPhotoLibraryAddUsageDescription": "Pulse needs to save receipt images to your photo library."
       }
     },
     "android": {
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.snapbudget.app",
+      "package": "com.pulsefi.app",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -44,13 +44,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "SnapBudget needs camera access to scan receipts."
+          "cameraPermission": "Pulse needs camera access to scan receipts."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "SnapBudget needs photo library access to import receipt images."
+          "photosPermission": "Pulse needs photo library access to import receipt images."
         }
       ],
       [

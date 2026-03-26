@@ -219,7 +219,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     ]);
     const streak = calculateStreak(transactions, frozenDates);
     const savedBestStreak = parseInt(
-      (await AsyncStorage.getItem('snapbudget_best_streak').catch(() => '0')) ?? '0',
+      (await AsyncStorage.getItem('pulse_best_streak').catch(() => '0')) ?? '0',
       10
     );
     const bestStreak = Math.max(streak, savedBestStreak);
@@ -551,11 +551,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setPersona: (id: PersonaId) => {
     set({ persona: id });
-    AsyncStorage.setItem('snapbudget_persona', id).catch(() => {});
+    AsyncStorage.setItem('pulse_persona', id).catch(() => {});
   },
 
   loadPersona: async () => {
-    const saved = await AsyncStorage.getItem('snapbudget_persona').catch(() => null);
+    const saved = await AsyncStorage.getItem('pulse_persona').catch(() => null);
     if (saved) set({ persona: saved as PersonaId });
   },
 
@@ -589,7 +589,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { totalReceiptsScanned } = get();
     const next = totalReceiptsScanned + 1;
     set({ totalReceiptsScanned: next });
-    AsyncStorage.setItem('snapbudget_receipts_scanned', String(next)).catch(() => {});
+    AsyncStorage.setItem('pulse_receipts_scanned', String(next)).catch(() => {});
     get().recalculateHealthScore();
   },
 
@@ -597,7 +597,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { challengesCompleted } = get();
     const next = challengesCompleted + 1;
     set({ challengesCompleted: next });
-    AsyncStorage.setItem('snapbudget_challenges_completed', String(next)).catch(() => {});
+    AsyncStorage.setItem('pulse_challenges_completed', String(next)).catch(() => {});
     get().recalculateHealthScore();
   },
 
@@ -657,7 +657,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { bestStreak, earnedBadges, challengesCompleted, totalReceiptsScanned } = get();
     const newBestStreak = Math.max(newStreak, bestStreak);
     if (newBestStreak > bestStreak) {
-      AsyncStorage.setItem('snapbudget_best_streak', String(newBestStreak)).catch(() => {});
+      AsyncStorage.setItem('pulse_best_streak', String(newBestStreak)).catch(() => {});
     }
 
     // Badge evaluation
