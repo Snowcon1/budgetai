@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { WeeklyChallengeData, Transaction } from '../types';
 
@@ -9,15 +9,19 @@ interface Props {
   transactions: Transaction[];
   onOptIn: () => void;
   onSkip: () => void;
+  onComplete?: () => void;
 }
 
-export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSkip }: Props) {
+export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSkip, onComplete }: Props) {
+  const { colors } = useTheme();
+  const prevCompleted = useRef(challenge.completed);
+
   const progress = useMemo(() => {
     if (!challenge.category || !challenge.target_amount) return null;
 
     const now = new Date();
     const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay()); // Sunday
+    weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
     const weekStartStr = weekStart.toISOString().split('T')[0];
     const todayStr = now.toISOString().split('T')[0];
@@ -35,9 +39,18 @@ export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSk
     return { spent, target: challenge.target_amount };
   }, [challenge.category, challenge.target_amount, transactions]);
 
+  useEffect(() => {
+    if (!prevCompleted.current && challenge.completed && onComplete) {
+      onComplete();
+    }
+    prevCompleted.current = challenge.completed;
+  }, [challenge.completed]);
+
   const ratio = progress ? Math.min(progress.spent / progress.target, 1) : 0;
   const isOver = progress ? progress.spent > progress.target : false;
   const barColor = isOver ? colors.accent.red : ratio > 0.8 ? colors.accent.amber : colors.accent.green;
+
+  const styles = makeStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -47,7 +60,6 @@ export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSk
       </View>
       <Text style={styles.description}>{challenge.description}</Text>
 
-      {/* Live progress bar when opted in (or always if there's a category) */}
       {progress && (challenge.opted_in || !challenge.completed) && (
         <View style={styles.progressSection}>
           <View style={styles.progressBar}>
@@ -88,97 +100,99 @@ export default function WeeklyChallenge({ challenge, transactions, onOptIn, onSk
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent.blue,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  headerIcon: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  headerText: {
-    ...typography.label,
-    color: colors.accent.blueLight,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  description: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-  progressSection: {
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.border.default,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  progressSpent: {
-    ...typography.caption,
-    fontWeight: '600',
-  },
-  progressTarget: {
-    ...typography.caption,
-    color: colors.text.muted,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  skipButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  skipText: {
-    ...typography.label,
-    color: colors.text.muted,
-  },
-  optInButton: {
-    flex: 2,
-    backgroundColor: colors.accent.blue,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  optInText: {
-    ...typography.label,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  statusText: {
-    ...typography.label,
-  },
-  completedText: {
-    ...typography.label,
-    color: colors.accent.green,
-    fontWeight: '600',
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent.blue,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    headerIcon: {
+      fontSize: 14,
+      marginRight: 6,
+    },
+    headerText: {
+      ...typography.label,
+      color: colors.accent.blueLight,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    description: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      marginBottom: 12,
+    },
+    progressSection: {
+      marginBottom: 12,
+    },
+    progressBar: {
+      height: 6,
+      backgroundColor: colors.border.default,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 6,
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    progressLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    progressSpent: {
+      ...typography.caption,
+      fontWeight: '600',
+    },
+    progressTarget: {
+      ...typography.caption,
+      color: colors.text.muted,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    skipButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    skipText: {
+      ...typography.label,
+      color: colors.text.muted,
+    },
+    optInButton: {
+      flex: 2,
+      backgroundColor: colors.accent.blue,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    optInText: {
+      ...typography.label,
+      color: '#fff',
+      fontWeight: '600',
+    },
+    statusText: {
+      ...typography.label,
+    },
+    completedText: {
+      ...typography.label,
+      color: colors.accent.green,
+      fontWeight: '600',
+    },
+  });
+}

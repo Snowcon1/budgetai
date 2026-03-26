@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Category } from '../types';
@@ -9,10 +9,18 @@ import HealthScore from '../components/HealthScore';
 import MonthSummaryBar from '../components/MonthSummaryBar';
 import GoalCard from '../components/GoalCard';
 import CategoryPill from '../components/CategoryPill';
+import CategorySpendBar from '../components/CategorySpendBar';
 import TransactionItem from '../components/TransactionItem';
 import StreakCard from '../components/StreakCard';
 import WeeklyChallenge from '../components/WeeklyChallenge';
+import WeeklyAISummaryCard from '../components/WeeklyAISummaryCard';
+import ConfettiOverlay from '../components/ConfettiOverlay';
+import BadgeUnlockModal from '../components/BadgeUnlockModal';
 import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
+import { generateWeeklySummary } from '../utils/weeklySummary';
+import { useStreakFreeze } from '../utils/streakFreeze';
+import { hapticSuccess } from '../utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Props {
   navigation: {
@@ -21,18 +29,59 @@ interface Props {
 }
 
 export default function HomeScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const {
     transactions,
     goals,
     healthScore,
     currentStreak,
+    bestStreak,
     weeklyChallenge,
     setWeeklyChallenge,
     user,
     accounts,
+    persona,
+    freezesRemaining,
+    useStreakFreezeAction,
+    newlyEarnedBadge,
+    dismissBadge,
+    challengesCompleted,
+    incrementChallengesCompleted,
   } = useAppStore();
 
   const fabScale = useRef(new Animated.Value(1)).current;
+  const [categoryView, setCategoryView] = useState<'pills' | 'bars'>('bars');
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
+  const prevChallengeCompleted = useRef(weeklyChallenge.completed);
+
+  // Load category view preference
+  useEffect(() => {
+    AsyncStorage.getItem('snapbudget_category_view').then((v) => {
+      if (v === 'pills' || v === 'bars') setCategoryView(v);
+    });
+  }, []);
+
+  // Watch for challenge completion
+  useEffect(() => {
+    if (!prevChallengeCompleted.current && weeklyChallenge.completed) {
+      setCelebrationVisible(true);
+      hapticSuccess();
+    }
+    prevChallengeCompleted.current = weeklyChallenge.completed;
+  }, [weeklyChallenge.completed]);
+
+  // Watch for badge earned
+  useEffect(() => {
+    if (newlyEarnedBadge) {
+      setCelebrationVisible(true);
+    }
+  }, [newlyEarnedBadge]);
+
+  const toggleCategoryView = () => {
+    const next = categoryView === 'bars' ? 'pills' : 'bars';
+    setCategoryView(next);
+    AsyncStorage.setItem('snapbudget_category_view', next).catch(() => {});
+  };
 
   // FAB idle pulse
   useEffect(() => {
@@ -75,10 +124,15 @@ export default function HomeScreen({ navigation }: Props) {
 
     const topCategories = Array.from(categoryTotals.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
+      .slice(0, 5);
 
     return { spent, topCategories };
   }, [transactions, currentMonth, currentYear]);
+
+  const weeklySummary = useMemo(
+    () => generateWeeklySummary(transactions, persona, user?.monthly_income ?? 0),
+    [transactions, persona, user?.monthly_income]
+  );
 
   const recentTransactions = transactions.slice(0, 6);
 
@@ -89,12 +143,18 @@ export default function HomeScreen({ navigation }: Props) {
     .filter((a) => a.type === 'credit')
     .reduce((s, a) => s + Math.abs(a.balance), 0);
 
-  // Create stagger anims for transactions — rebuild when count changes
+  // Freeze logic: can freeze if no transactions today but had some yesterday
+  const todayStr = now.toISOString().split('T')[0];
+  const yesterdayStr = new Date(now.getTime() - 86400000).toISOString().split('T')[0];
+  const hasTransactionToday = transactions.some((t) => t.date === todayStr);
+  const hadTransactionYesterday = transactions.some((t) => t.date === yesterdayStr);
+  const canFreeze = !hasTransactionToday && hadTransactionYesterday && currentStreak > 0;
+
+  // Stagger animations for transactions
   const txnCount = recentTransactions.length;
   const txnFadesRef = useRef<Animated.Value[]>([]);
   const txnSlidesRef = useRef<Animated.Value[]>([]);
 
-  // Ensure arrays always match current count
   if (txnFadesRef.current.length !== txnCount) {
     txnFadesRef.current = recentTransactions.map(() => new Animated.Value(0));
     txnSlidesRef.current = recentTransactions.map(() => new Animated.Value(12));
@@ -121,8 +181,27 @@ export default function HomeScreen({ navigation }: Props) {
     ]).start(() => navigation.navigate('ReceiptCapture'));
   };
 
+  const handleFreeze = async () => {
+    if (useStreakFreezeAction) {
+      await useStreakFreezeAction();
+    }
+  };
+
+  const styles = makeStyles(colors);
+
   return (
     <View style={styles.container}>
+      <ConfettiOverlay
+        visible={celebrationVisible}
+        onComplete={() => setCelebrationVisible(false)}
+      />
+      {newlyEarnedBadge && (
+        <BadgeUnlockModal
+          badgeId={newlyEarnedBadge}
+          visible={!!newlyEarnedBadge}
+          onDismiss={dismissBadge}
+        />
+      )}
       <DemoModeBanner />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.greetingRow}>
@@ -168,6 +247,8 @@ export default function HomeScreen({ navigation }: Props) {
 
         <MonthSummaryBar spent={monthlyData.spent} income={user?.monthly_income ?? 0} />
 
+        <WeeklyAISummaryCard summary={weeklySummary} onFullRecap={() => navigation.navigate('WeeklyRecap', {})} />
+
         {goals.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Your Goals</Text>
@@ -190,16 +271,48 @@ export default function HomeScreen({ navigation }: Props) {
 
         {monthlyData.topCategories.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Spending This Month</Text>
-            <View style={styles.pillRow}>
-              {monthlyData.topCategories.map(([cat, amount]) => (
-                <CategoryPill key={cat} category={cat} amount={amount} />
-              ))}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Spending This Month</Text>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity onPress={toggleCategoryView}>
+                  <Text style={styles.viewToggle}>{categoryView === 'bars' ? '⊞' : '≡'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('BudgetBreakdown', {})}>
+                  <Text style={styles.seeAll}>See All →</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+            {categoryView === 'bars' ? (
+              <View>
+                {monthlyData.topCategories.map(([cat, amount], rank) => (
+                  <CategorySpendBar
+                    key={cat}
+                    category={cat}
+                    amount={amount}
+                    income={user?.monthly_income ?? 0}
+                    rank={rank}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.pillRow}>
+                {monthlyData.topCategories.map(([cat, amount]) => (
+                  <CategoryPill key={cat} category={cat} amount={amount} />
+                ))}
+              </View>
+            )}
           </View>
         )}
 
-        {currentStreak > 0 && <StreakCard streak={currentStreak} />}
+        {currentStreak > 0 && (
+          <StreakCard
+            streak={currentStreak}
+            bestStreak={bestStreak}
+            freezesRemaining={freezesRemaining}
+            canFreeze={canFreeze}
+            onFreeze={handleFreeze}
+          />
+        )}
 
         {transactions.length > 0 && (
           <WeeklyChallenge
@@ -207,6 +320,11 @@ export default function HomeScreen({ navigation }: Props) {
             transactions={transactions}
             onOptIn={() => setWeeklyChallenge({ ...weeklyChallenge, opted_in: true })}
             onSkip={() => setWeeklyChallenge(generateWeeklyChallenge(transactions, weeklyChallenge.category, weeklyChallenge.description))}
+            onComplete={() => {
+              setCelebrationVisible(true);
+              hapticSuccess();
+              incrementChallengesCompleted();
+            }}
           />
         )}
 
@@ -259,142 +377,149 @@ export default function HomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 4,
-  },
-  greetingSmall: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  greeting: {
-    ...typography.title,
-    color: colors.text.primary,
-  },
-  balanceCard: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  balanceLeft: {
-    flex: 1,
-  },
-  balanceLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 2,
-  },
-  balanceValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.text.primary,
-    letterSpacing: -0.5,
-  },
-  balancePills: {
-    flexDirection: 'row',
-    gap: 8,
-    marginRight: 8,
-  },
-  balancePill: {
-    alignItems: 'center',
-  },
-  balancePillLabel: {
-    ...typography.caption,
-    color: colors.text.disabled,
-    marginBottom: 1,
-  },
-  balancePillValue: {
-    ...typography.caption,
-    fontWeight: '700',
-  },
-  balanceArrow: {
-    ...typography.title,
-    color: colors.text.muted,
-    lineHeight: 24,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginBottom: 12,
-  },
-  seeAll: {
-    ...typography.label,
-    color: colors.accent.blue,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  emptyTxn: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyTxnIcon: {
-    fontSize: 32,
-    marginBottom: 10,
-  },
-  emptyTxnText: {
-    ...typography.subheading,
-    color: colors.text.secondary,
-    marginBottom: 4,
-  },
-  emptyTxnSub: {
-    ...typography.caption,
-    color: colors.text.muted,
-  },
-  fabWrapper: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
-  },
-  fab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.accent.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 8,
-    shadowColor: colors.accent.blue,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-  },
-  fabIcon: {
-    fontSize: 24,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+    },
+    greetingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginBottom: 4,
+    },
+    greetingSmall: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    greeting: {
+      ...typography.title,
+      color: colors.text.primary,
+    },
+    balanceCard: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    balanceLeft: {
+      flex: 1,
+    },
+    balanceLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginBottom: 2,
+    },
+    balanceValue: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.text.primary,
+      letterSpacing: -0.5,
+    },
+    balancePills: {
+      flexDirection: 'row',
+      gap: 8,
+      marginRight: 8,
+    },
+    balancePill: {
+      alignItems: 'center',
+    },
+    balancePillLabel: {
+      ...typography.caption,
+      color: colors.text.disabled,
+      marginBottom: 1,
+    },
+    balancePillValue: {
+      ...typography.caption,
+      fontWeight: '700',
+    },
+    balanceArrow: {
+      ...typography.title,
+      color: colors.text.muted,
+      lineHeight: 24,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      ...typography.heading,
+      color: colors.text.primary,
+      marginBottom: 12,
+    },
+    seeAll: {
+      ...typography.label,
+      color: colors.accent.blue,
+      fontWeight: '600',
+      marginBottom: 12,
+    },
+    viewToggle: {
+      ...typography.heading,
+      color: colors.text.muted,
+      marginBottom: 12,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    emptyTxn: {
+      alignItems: 'center',
+      paddingVertical: 32,
+    },
+    emptyTxnIcon: {
+      fontSize: 32,
+      marginBottom: 10,
+    },
+    emptyTxnText: {
+      ...typography.subheading,
+      color: colors.text.secondary,
+      marginBottom: 4,
+    },
+    emptyTxnSub: {
+      ...typography.caption,
+      color: colors.text.muted,
+    },
+    fabWrapper: {
+      position: 'absolute',
+      right: 20,
+      bottom: 24,
+    },
+    fab: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: colors.accent.blue,
+      alignItems: 'center',
+      justifyContent: 'center',
+      elevation: 8,
+      shadowColor: colors.accent.blue,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+    },
+    fabIcon: {
+      fontSize: 24,
+    },
+  });
+}

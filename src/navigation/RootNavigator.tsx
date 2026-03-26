@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import type { Session } from '@supabase/supabase-js';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { useAppStore } from '../store/useAppStore';
 import MainTabNavigator from './MainTabNavigator';
@@ -16,6 +16,8 @@ import GoalDetailScreen from '../screens/GoalDetailScreen';
 import ReceiptCaptureScreen from '../screens/ReceiptCaptureScreen';
 import WeeklyRecapScreen from '../screens/WeeklyRecapScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import BudgetBreakdownScreen from '../screens/BudgetBreakdownScreen';
+import BadgesScreen from '../screens/BadgesScreen';
 
 type RootStackParamList = {
   Onboarding: undefined;
@@ -29,11 +31,14 @@ type RootStackParamList = {
   ReceiptCapture: undefined;
   WeeklyRecap: { weekNumber?: number };
   Settings: undefined;
+  BudgetBreakdown: undefined;
+  Badges: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
+  const { colors } = useTheme();
   const { user, isNewUser, wantsAuth, loadUserData, reset, loadPersona } = useAppStore();
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -128,6 +133,16 @@ export default function RootNavigator() {
             name="Settings"
             component={SettingsScreen}
             options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="BudgetBreakdown"
+            component={BudgetBreakdownScreen}
+            options={{ title: 'Budget Breakdown' }}
+          />
+          <Stack.Screen
+            name="Badges"
+            component={BadgesScreen}
+            options={{ title: 'Achievements' }}
           />
         </>
       )}

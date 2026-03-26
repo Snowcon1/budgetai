@@ -1,3 +1,5 @@
+// Legacy export kept for any files not yet migrated to useTheme().
+// Prefer useTheme().colors in components.
 export const colors = {
   bg: {
     primary: '#0F172A',

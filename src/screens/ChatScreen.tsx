@@ -12,7 +12,7 @@ import {
   Animated,
   Modal,
 } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import ChatBubble from '../components/ChatBubble';
@@ -86,9 +86,9 @@ const typingStyles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.accent.blueGlow,
+    backgroundColor: 'rgba(59,130,246,0.15)',
     borderWidth: 1,
-    borderColor: colors.accent.blue + '30',
+    borderColor: 'rgba(59,130,246,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -96,11 +96,11 @@ const typingStyles = StyleSheet.create({
   avatarText: { fontSize: 14 },
   bubble: {
     flexDirection: 'row',
-    backgroundColor: colors.bg.surface,
+    backgroundColor: '#1E293B',
     borderRadius: 16,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border.default,
+    borderColor: '#334155',
     padding: 14,
     gap: 6,
   },
@@ -108,11 +108,12 @@ const typingStyles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: colors.text.muted,
+    backgroundColor: '#94A3B8',
   },
 });
 
 export default function ChatScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -257,6 +258,8 @@ export default function ChatScreen({ navigation, route }: Props) {
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, [chatHistory.length, isTyping]);
+
+  const styles = makeChatStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -429,7 +432,7 @@ export default function ChatScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeChatStyles(colors: ReturnType<typeof useTheme>['colors']) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,
@@ -707,4 +710,4 @@ const styles = StyleSheet.create({
     color: colors.accent.blue,
     fontWeight: '700',
   },
-});
+}); }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import Svg, { Circle } from 'react-native-svg';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { Goal } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -24,7 +25,69 @@ function getGoalEmoji(name: string): string {
   return '🎯';
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+function GoalRing({ percentage, size, colors }: { percentage: number; size: number; colors: ReturnType<typeof useTheme>['colors'] }) {
+  const strokeWidth = size === 52 ? 5 : 7;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const ringColor =
+    percentage >= 80
+      ? colors.accent.green
+      : percentage >= 50
+      ? colors.accent.amber
+      : colors.accent.blue;
+
+  useEffect(() => {
+    Animated.spring(progressAnim, {
+      toValue: Math.min(percentage, 100),
+      tension: 60,
+      friction: 8,
+      useNativeDriver: false,
+    }).start();
+  }, [percentage]);
+
+  const strokeDashoffset = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+  });
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={colors.border.default}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <AnimatedCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={ringColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text style={{ ...typography.caption, color: ringColor, fontWeight: '700', fontSize: size === 52 ? 10 : 13 }}>
+          {percentage}%
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function GoalCard({ goal, compact = false, onPress, index = 0 }: Props) {
+  const { colors } = useTheme();
   const progress = goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0;
   const percentage = Math.round(progress * 100);
   const daysLeft = differenceInDays(new Date(goal.target_date), new Date());
@@ -48,25 +111,33 @@ export default function GoalCard({ goal, compact = false, onPress, index = 0 }: 
     ]).start();
   }, [percentage]);
 
-  const animatedBarWidth = progressAnim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ['0%', '100%'],
-  });
+  const styles = makeStyles(colors);
 
   if (compact) {
     return (
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.8}>
-          <Text style={styles.emoji}>{emoji}</Text>
-          <Text style={styles.compactName} numberOfLines={1}>{goal.name}</Text>
-          <View style={styles.compactBarBg}>
-            <Animated.View style={[styles.compactBarFill, { width: animatedBarWidth }]} />
+          <View style={styles.compactTop}>
+            <Text style={styles.emoji}>{emoji}</Text>
+            <GoalRing percentage={percentage} size={52} colors={colors} />
           </View>
-          <Text style={styles.compactPercent}>{percentage}%</Text>
+          <Text style={styles.compactName} numberOfLines={1}>{goal.name}</Text>
         </TouchableOpacity>
       </Animated.View>
     );
   }
+
+  const animatedBarWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
+  const ringColor =
+    percentage >= 80
+      ? colors.accent.green
+      : percentage >= 50
+      ? colors.accent.amber
+      : colors.accent.blue;
 
   return (
     <TouchableOpacity style={styles.fullCard} onPress={onPress} activeOpacity={0.8}>
@@ -78,10 +149,10 @@ export default function GoalCard({ goal, compact = false, onPress, index = 0 }: 
             {daysLeft > 0 ? `${daysLeft} days left` : 'Past due'}
           </Text>
         </View>
-        <Text style={styles.percentage}>{percentage}%</Text>
+        <GoalRing percentage={percentage} size={72} colors={colors} />
       </View>
       <View style={styles.fullBarBg}>
-        <Animated.View style={[styles.fullBarFill, { width: animatedBarWidth }]} />
+        <Animated.View style={[styles.fullBarFill, { width: animatedBarWidth, backgroundColor: ringColor }]} />
       </View>
       <View style={styles.amountRow}>
         <Text style={styles.amountCurrent}>{formatCurrency(goal.current_amount)}</Text>
@@ -91,95 +162,79 @@ export default function GoalCard({ goal, compact = false, onPress, index = 0 }: 
   );
 }
 
-const styles = StyleSheet.create({
-  compactCard: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 14,
-    width: 150,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  emoji: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
-  compactName: {
-    ...typography.label,
-    color: colors.text.primary,
-    marginBottom: 10,
-  },
-  compactBarBg: {
-    height: 4,
-    backgroundColor: colors.border.default,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  compactBarFill: {
-    height: '100%',
-    backgroundColor: colors.accent.blue,
-    borderRadius: 2,
-  },
-  compactPercent: {
-    ...typography.caption,
-    color: colors.accent.blue,
-    fontWeight: '600',
-  },
-  fullCard: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerText: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  fullName: {
-    ...typography.subheading,
-    color: colors.text.primary,
-  },
-  daysLeft: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 2,
-  },
-  percentage: {
-    ...typography.title,
-    color: colors.accent.blue,
-  },
-  fullBarBg: {
-    height: 6,
-    backgroundColor: colors.border.default,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  fullBarFill: {
-    height: '100%',
-    backgroundColor: colors.accent.blue,
-    borderRadius: 3,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  amountCurrent: {
-    ...typography.subheading,
-    color: colors.text.primary,
-  },
-  amountTarget: {
-    ...typography.label,
-    color: colors.text.muted,
-    marginLeft: 4,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    compactCard: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 14,
+      width: 160,
+      marginRight: 12,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    compactTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    emoji: {
+      fontSize: 24,
+    },
+    compactName: {
+      ...typography.label,
+      color: colors.text.primary,
+    },
+    fullCard: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    headerText: {
+      flex: 1,
+      marginLeft: 10,
+    },
+    fullName: {
+      ...typography.subheading,
+      color: colors.text.primary,
+    },
+    daysLeft: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: 2,
+    },
+    fullBarBg: {
+      height: 6,
+      backgroundColor: colors.border.default,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 10,
+    },
+    fullBarFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    amountRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+    },
+    amountCurrent: {
+      ...typography.subheading,
+      color: colors.text.primary,
+    },
+    amountTarget: {
+      ...typography.label,
+      color: colors.text.muted,
+      marginLeft: 4,
+    },
+  });
+}

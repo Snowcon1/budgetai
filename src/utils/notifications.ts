@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Goal } from '../types';
 import { PersonaId, PERSONAS, DEFAULT_PERSONA } from '../constants/personas';
+import { NotificationPrefs } from './notificationPrefs';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -79,7 +80,10 @@ export async function scheduleBudgetWarning(currentSpend: number, monthlyIncome:
   }
 }
 
-export async function scheduleStreakReminder(persona: PersonaId = DEFAULT_PERSONA): Promise<void> {
+export async function scheduleStreakReminder(
+  persona: PersonaId = DEFAULT_PERSONA,
+  hour = 20
+): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync('streak-reminder').catch(() => {});
 
   const { title, body } = PERSONAS[persona].notifications.streakReminder;
@@ -88,9 +92,88 @@ export async function scheduleStreakReminder(persona: PersonaId = DEFAULT_PERSON
     identifier: 'streak-reminder',
     content: { title, body },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 60 * 60 * 24 * 5,
-      repeats: false,
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute: 0,
     },
   });
+}
+
+export async function scheduleDailyCheckIn(
+  persona: PersonaId = DEFAULT_PERSONA,
+  hour = 8
+): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync('daily-checkin').catch(() => {});
+
+  const personaData = PERSONAS[persona];
+  const title = personaData.notifications.dailyCheckIn?.title ?? '📊 Daily Check-in';
+  const body = personaData.notifications.dailyCheckIn?.body ?? 'Take a moment to log today\'s spending.';
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: 'daily-checkin',
+    content: { title, body },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute: 0,
+    },
+  });
+}
+
+export async function scheduleAllNotifications(
+  prefs: NotificationPrefs,
+  persona: PersonaId,
+  goals: Goal[],
+  currentSpend: number,
+  monthlyIncome: number
+): Promise<void> {
+  // Weekly recap
+  if (prefs.weeklyRecap.enabled) {
+    await Notifications.cancelScheduledNotificationAsync('weekly-recap').catch(() => {});
+    const { title, body } = PERSONAS[persona].notifications.weeklyRecap;
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'weekly-recap',
+      content: { title, body },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: prefs.weeklyRecap.weekday,
+        hour: prefs.weeklyRecap.hour,
+        minute: 0,
+      },
+    });
+  } else {
+    await Notifications.cancelScheduledNotificationAsync('weekly-recap').catch(() => {});
+  }
+
+  // Streak reminder
+  if (prefs.streakReminder.enabled) {
+    await scheduleStreakReminder(persona, prefs.streakReminder.hour);
+  } else {
+    await Notifications.cancelScheduledNotificationAsync('streak-reminder').catch(() => {});
+  }
+
+  // Daily check-in
+  if (prefs.dailyCheckIn.enabled) {
+    await scheduleDailyCheckIn(persona, prefs.dailyCheckIn.hour);
+  } else {
+    await Notifications.cancelScheduledNotificationAsync('daily-checkin').catch(() => {});
+  }
+
+  // Budget warning
+  if (prefs.budgetWarning.enabled) {
+    await scheduleBudgetWarning(currentSpend, monthlyIncome, persona);
+  } else {
+    await Notifications.cancelScheduledNotificationAsync('budget-warning').catch(() => {});
+  }
+
+  // Goal nudges
+  if (prefs.goalNudge.enabled) {
+    for (const goal of goals) {
+      await scheduleGoalNudge(goal, persona);
+    }
+  } else {
+    for (const goal of goals) {
+      await Notifications.cancelScheduledNotificationAsync(`goal-nudge-${goal.id}`).catch(() => {});
+    }
+  }
 }

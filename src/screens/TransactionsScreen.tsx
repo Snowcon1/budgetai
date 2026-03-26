@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Category, Transaction } from '../types';
@@ -24,6 +24,7 @@ interface Props {
 }
 
 export default function TransactionsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const { transactions } = useAppStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
@@ -71,6 +72,8 @@ export default function TransactionsScreen({ navigation }: Props) {
     await new Promise((r) => setTimeout(r, 1000));
     setRefreshing(false);
   };
+
+  const styles = makeTxnStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -144,7 +147,7 @@ export default function TransactionsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeTxnStyles(colors: ReturnType<typeof useTheme>['colors']) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,
@@ -262,4 +265,4 @@ const styles = StyleSheet.create({
   fabIcon: {
     fontSize: 24,
   },
-});
+}); }

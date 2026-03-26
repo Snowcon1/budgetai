@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Modal, TextInput, Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { differenceInDays, format } from 'date-fns';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
+import { hapticSuccess, hapticHeavy } from '../utils/haptics';
+import ConfettiOverlay from '../components/ConfettiOverlay';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
 import MilestoneModal from '../components/MilestoneModal';
@@ -27,12 +29,14 @@ function getGoalEmoji(name: string): string {
 
 export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
+  const { colors } = useTheme();
   const { goals, updateGoal, accounts } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneText, setMilestoneText] = useState('');
   const [showContribution, setShowContribution] = useState(false);
   const [contributionAmount, setContributionAmount] = useState('');
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const ringAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -59,6 +63,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
     }
     const newAmount = Math.min(goal.current_amount + amount, goal.target_amount);
     updateGoal(goal.id, { current_amount: newAmount });
+    hapticSuccess();
     setShowContribution(false);
     setContributionAmount('');
   };
@@ -74,11 +79,6 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
-  const ringColor =
-    percentage >= 75 ? colors.accent.green : percentage >= 50 ? colors.accent.blue : colors.accent.amber;
-  const ringGlow =
-    percentage >= 75 ? colors.accent.greenGlow : percentage >= 50 ? colors.accent.blueGlow : colors.accent.amberGlow;
 
   useEffect(() => {
     // Animate ring
@@ -112,6 +112,8 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           ]).start();
           setMilestoneText(`${m}% Complete!`);
           setShowMilestone(true);
+          hapticHeavy();
+          if (m === 100) setShowCelebration(true);
         }, 1400);
         break;
       }
@@ -123,8 +125,16 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
     outputRange: [circumference, 0],
   });
 
+  const ringColor =
+    percentage >= 75 ? colors.accent.green : percentage >= 50 ? colors.accent.blue : colors.accent.amber;
+  const ringGlow =
+    percentage >= 75 ? colors.accent.greenGlow : percentage >= 50 ? colors.accent.blueGlow : colors.accent.amberGlow;
+
+  const styles = makeDetailStyles(colors);
+
   return (
     <View style={styles.container}>
+      <ConfettiOverlay visible={showCelebration} onComplete={() => setShowCelebration(false)} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <Text style={styles.emoji}>{getGoalEmoji(goal.name)}</Text>
@@ -259,7 +269,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,
@@ -471,4 +481,4 @@ const styles = StyleSheet.create({
     ...typography.subheading,
     fontWeight: '600',
   },
-});
+}); }

@@ -13,9 +13,12 @@ import {
   WeeklyChallengeData,
 } from '../types';
 import { PersonaId, DEFAULT_PERSONA } from '../constants/personas';
+import { BadgeId } from '../constants/badges';
 import { demoUser, demoAccounts, demoTransactions, demoGoals, demoSubscriptions } from '../utils/demoData';
 import { calculateHealthScore } from '../utils/healthScore';
 import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
+import { loadFreezesRemaining, saveFreezesRemaining, loadFrozenDates, addFrozenDate } from '../utils/streakFreeze';
+import { evaluateBadges, loadEarnedBadges, saveEarnedBadges } from '../utils/badgeEvaluator';
 import {
   getTransactions,
   insertTransaction,
@@ -47,9 +50,15 @@ interface AppState {
   currentConversationId: string | null;
   healthScore: HealthScoreBreakdown;
   currentStreak: number;
+  bestStreak: number;
+  freezesRemaining: number;
   weeklyChallenge: WeeklyChallengeData;
   isPlaidConnected: boolean;
   persona: PersonaId;
+  earnedBadges: BadgeId[];
+  newlyEarnedBadge: BadgeId | null;
+  challengesCompleted: number;
+  totalReceiptsScanned: number;
 
   // Auth / init
   loadUserData: (userId: string) => Promise<void>;
@@ -80,6 +89,11 @@ interface AppState {
   setWeeklyChallenge: (challenge: WeeklyChallengeData) => void;
   setPersona: (id: PersonaId) => void;
   loadPersona: () => Promise<void>;
+  useStreakFreezeAction: () => Promise<boolean>;
+  dismissBadge: () => void;
+  loadBadges: () => Promise<void>;
+  incrementReceiptsScanned: () => void;
+  incrementChallengesCompleted: () => void;
 
   recalculateHealthScore: () => void;
 }
@@ -98,28 +112,32 @@ const defaultWeeklyChallenge: WeeklyChallengeData = {
   opted_in: false,
 };
 
-function calculateStreak(transactions: Transaction[]): number {
+function calculateStreak(transactions: Transaction[], frozenDates: string[] = []): number {
   if (transactions.length === 0) return 0;
+
+  const txnDates = new Set(transactions.map((t) => t.date));
+  const frozenSet = new Set(frozenDates);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   let streak = 0;
   let checkDate = new Date(today);
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 365; i++) {
     const dateStr = checkDate.toISOString().split('T')[0];
-    const hasTransaction = transactions.some((t) => t.date === dateStr);
-    if (hasTransaction) {
+    const hasActivity = txnDates.has(dateStr) || frozenSet.has(dateStr);
+    if (hasActivity) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
     } else if (i === 0) {
+      // Grace: today may not have a transaction yet — check yesterday to continue streak
       checkDate.setDate(checkDate.getDate() - 1);
     } else {
       break;
     }
   }
 
-  return Math.floor(streak / 7);
+  return streak;
 }
 
 function sortByDate(transactions: Transaction[]): Transaction[] {
@@ -151,9 +169,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentConversationId: null,
   healthScore: defaultHealthScore,
   currentStreak: 0,
+  bestStreak: 0,
+  freezesRemaining: 3,
   weeklyChallenge: defaultWeeklyChallenge,
   isPlaidConnected: false,
   persona: DEFAULT_PERSONA,
+  earnedBadges: [],
+  newlyEarnedBadge: null,
+  challengesCompleted: 0,
+  totalReceiptsScanned: 0,
 
   // ─── Auth / Init ────────────────────────────────────────────────────────────
 
@@ -188,7 +212,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const chatSessions = chatRes.data ?? [];
 
     const score = calculateHealthScore(transactions, goals, [], profile.monthly_income ?? 0);
-    const streak = calculateStreak(transactions);
+    const [frozenDates, freezesRemaining, earnedBadges] = await Promise.all([
+      loadFrozenDates(),
+      loadFreezesRemaining(),
+      loadEarnedBadges(),
+    ]);
+    const streak = calculateStreak(transactions, frozenDates);
+    const savedBestStreak = parseInt(
+      (await AsyncStorage.getItem('snapbudget_best_streak').catch(() => '0')) ?? '0',
+      10
+    );
+    const bestStreak = Math.max(streak, savedBestStreak);
     // Restore saved challenge from profile, or generate a fresh one
     const challenge = profile.weekly_challenge ?? generateWeeklyChallenge(transactions);
 
@@ -206,6 +240,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentConversationId: null,
       healthScore: score,
       currentStreak: streak,
+      bestStreak,
+      freezesRemaining,
+      earnedBadges,
       isPlaidConnected: accounts.length > 0,
       weeklyChallenge: challenge,
     });
@@ -315,6 +352,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentConversationId: null,
       healthScore: score,
       currentStreak: streak,
+      bestStreak: streak,
       isPlaidConnected: false,
       weeklyChallenge: challenge,
     });
@@ -521,6 +559,48 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (saved) set({ persona: saved as PersonaId });
   },
 
+  useStreakFreezeAction: async () => {
+    const { freezesRemaining } = get();
+    if (freezesRemaining <= 0) return false;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split('T')[0];
+    await addFrozenDate(dateStr);
+    const newCount = freezesRemaining - 1;
+    await saveFreezesRemaining(newCount);
+    set({ freezesRemaining: newCount });
+    get().recalculateHealthScore();
+    return true;
+  },
+
+  dismissBadge: () => {
+    set({ newlyEarnedBadge: null });
+  },
+
+  loadBadges: async () => {
+    const [badges, freezesRemaining] = await Promise.all([
+      loadEarnedBadges(),
+      loadFreezesRemaining(),
+    ]);
+    set({ earnedBadges: badges, freezesRemaining });
+  },
+
+  incrementReceiptsScanned: () => {
+    const { totalReceiptsScanned } = get();
+    const next = totalReceiptsScanned + 1;
+    set({ totalReceiptsScanned: next });
+    AsyncStorage.setItem('snapbudget_receipts_scanned', String(next)).catch(() => {});
+    get().recalculateHealthScore();
+  },
+
+  incrementChallengesCompleted: () => {
+    const { challengesCompleted } = get();
+    const next = challengesCompleted + 1;
+    set({ challengesCompleted: next });
+    AsyncStorage.setItem('snapbudget_challenges_completed', String(next)).catch(() => {});
+    get().recalculateHealthScore();
+  },
+
   // ─── Derived ─────────────────────────────────────────────────────────────────
 
   recalculateHealthScore: () => {
@@ -573,6 +653,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    set({ healthScore: score, currentStreak: calculateStreak(transactions), weeklyChallenge: newChallenge });
+    const newStreak = calculateStreak(transactions);
+    const { bestStreak, earnedBadges, challengesCompleted, totalReceiptsScanned } = get();
+    const newBestStreak = Math.max(newStreak, bestStreak);
+    if (newBestStreak > bestStreak) {
+      AsyncStorage.setItem('snapbudget_best_streak', String(newBestStreak)).catch(() => {});
+    }
+
+    // Badge evaluation
+    const ctx = {
+      transactions,
+      goals,
+      currentStreak: newStreak,
+      bestStreak: newBestStreak,
+      healthScore: score.total,
+      challengesCompleted,
+      totalReceiptsScanned,
+      monthlyIncome: user?.monthly_income ?? 0,
+    };
+    const newBadges = evaluateBadges(ctx, earnedBadges);
+    if (newBadges.length > 0) {
+      const updatedBadges = [...earnedBadges, ...newBadges];
+      saveEarnedBadges(updatedBadges).catch(() => {});
+      set({
+        healthScore: score,
+        currentStreak: newStreak,
+        bestStreak: newBestStreak,
+        weeklyChallenge: newChallenge,
+        earnedBadges: updatedBadges,
+        newlyEarnedBadge: newBadges[0],
+      });
+    } else {
+      set({ healthScore: score, currentStreak: newStreak, bestStreak: newBestStreak, weeklyChallenge: newChallenge });
+    }
   },
 }));

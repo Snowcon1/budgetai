@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { format, addMonths } from 'date-fns';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { Goal } from '../types';
@@ -28,6 +28,7 @@ interface Props {
 }
 
 export default function GoalsScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const { goals, addGoal, user, accounts } = useAppStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -100,6 +101,8 @@ export default function GoalsScreen({ navigation }: Props) {
       `To hit this by ${format(new Date(targetDate), 'MMM yyyy')} you need to save ${formatCurrency(monthlySavings)}/month — that's ${feasibility} based on your current spending.`
     );
   };
+
+  const styles = makeGoalsStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -218,7 +221,7 @@ export default function GoalsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeGoalsStyles(colors: ReturnType<typeof useTheme>['colors']) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg.primary,
@@ -370,4 +373,4 @@ const styles = StyleSheet.create({
     ...typography.subheading,
     fontWeight: '600',
   },
-});
+}); }

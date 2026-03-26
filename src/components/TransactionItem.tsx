@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { Transaction } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function TransactionItem({ transaction, onPress, style }: Props) {
+  const { colors } = useTheme();
   const isIncome = transaction.category === 'Income' || transaction.amount > 0;
   const borderColor = categoryColors[transaction.category] ?? colors.border.default;
   const iconBg = categoryBgColors[transaction.category] ?? colors.bg.elevated;
@@ -27,6 +28,8 @@ export default function TransactionItem({ transaction, onPress, style }: Props) 
   const handlePressOut = () => {
     Animated.spring(opacityAnim, { toValue: 1, useNativeDriver: true, tension: 200, friction: 10 }).start();
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <TouchableOpacity
@@ -54,54 +57,56 @@ export default function TransactionItem({ transaction, onPress, style }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  iconText: {
-    fontSize: 16,
-  },
-  leftContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  merchant: {
-    ...typography.subheading,
-    color: colors.text.primary,
-  },
-  category: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 2,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  rightContent: {
-    alignItems: 'flex-end',
-  },
-  amount: {
-    ...typography.subheading,
-    fontWeight: '600',
-  },
-  date: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 2,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+      borderLeftWidth: 3,
+      borderWidth: 1,
+      borderColor: colors.border.subtle,
+    },
+    iconCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    iconText: {
+      fontSize: 16,
+    },
+    leftContent: {
+      flex: 1,
+      marginRight: 12,
+    },
+    merchant: {
+      ...typography.subheading,
+      color: colors.text.primary,
+    },
+    category: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: 2,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+    },
+    rightContent: {
+      alignItems: 'flex-end',
+    },
+    amount: {
+      ...typography.subheading,
+      fontWeight: '600',
+    },
+    date: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: 2,
+    },
+  });
+}

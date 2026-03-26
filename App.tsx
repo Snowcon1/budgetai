@@ -6,18 +6,28 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import AddToHomeScreen from './src/components/AddToHomeScreen';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+
+function AppContent() {
+  const { isDark } = useTheme();
+  return (
+    <NavigationContainer>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <View style={{ flex: 1 }}>
+        <RootNavigator />
+        <AddToHomeScreen />
+      </View>
+    </NavigationContainer>
+  );
+}
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <StatusBar style="light" />
-          <View style={{ flex: 1 }}>
-            <RootNavigator />
-            <AddToHomeScreen />
-          </View>
-        </NavigationContainer>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

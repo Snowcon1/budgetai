@@ -1,32 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import AnimatedNumber from './AnimatedNumber';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 
 interface Props {
   streak: number;
+  bestStreak?: number;
+  freezesRemaining?: number;
+  canFreeze?: boolean;
+  onFreeze?: () => void;
 }
 
-export default function StreakCard({ streak }: Props) {
-  const [displayCount, setDisplayCount] = useState(0);
+export default function StreakCard({ streak, bestStreak = 0, freezesRemaining = 0, canFreeze = false, onFreeze }: Props) {
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
     if (streak <= 0) return;
-
-    // Count-up animation
-    const duration = 600;
-    const startTime = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 2);
-      setDisplayCount(Math.round(eased * streak));
-      if (progress < 1) setTimeout(tick, 16);
-    };
-    tick();
-
-    // Scale in
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
@@ -36,6 +27,8 @@ export default function StreakCard({ streak }: Props) {
   }, [streak]);
 
   if (streak <= 0) return null;
+
+  const styles = makeStyles(colors);
 
   return (
     <Animated.View
@@ -54,60 +47,103 @@ export default function StreakCard({ streak }: Props) {
         <Text style={styles.emoji}>🔥</Text>
       </View>
       <View style={styles.centerSection}>
-        <Text style={styles.count}>{displayCount}</Text>
-        <Text style={styles.unit}>week streak</Text>
+        <View style={styles.countRow}>
+          <AnimatedNumber value={streak} duration={600} style={styles.count} />
+          <Text style={styles.unit}>day streak</Text>
+        </View>
+        {bestStreak > 0 && (
+          <Text style={styles.bestStreak}>Best: {bestStreak} days</Text>
+        )}
       </View>
       <View style={styles.rightSection}>
-        <Text style={styles.message}>Keep tracking</Text>
-        <Text style={styles.subMessage}>your spending!</Text>
+        {canFreeze && freezesRemaining > 0 ? (
+          <TouchableOpacity style={styles.freezeButton} onPress={onFreeze} activeOpacity={0.8}>
+            <Text style={styles.freezeText}>🧊 ×{freezesRemaining}</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <Text style={styles.message}>Keep tracking</Text>
+            <Text style={styles.subMessage}>your spending!</Text>
+            {freezesRemaining > 0 && (
+              <Text style={styles.freezeInfo}>🧊 ×{freezesRemaining}</Text>
+            )}
+          </>
+        )}
       </View>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1C0A00',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.accent.amber + '40',
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent.amber,
-    elevation: 4,
-  },
-  leftSection: {
-    marginRight: 14,
-  },
-  emoji: {
-    fontSize: 32,
-  },
-  centerSection: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  count: {
-    ...typography.hero,
-    color: colors.accent.amberLight,
-  },
-  unit: {
-    ...typography.label,
-    color: colors.accent.amber,
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-  },
-  message: {
-    ...typography.caption,
-    color: colors.text.muted,
-  },
-  subMessage: {
-    ...typography.caption,
-    color: colors.text.muted,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.accent.amber + '40',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent.amber,
+      elevation: 4,
+    },
+    leftSection: {
+      marginRight: 14,
+    },
+    emoji: {
+      fontSize: 32,
+    },
+    centerSection: {
+      flex: 1,
+    },
+    countRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 6,
+    },
+    count: {
+      ...typography.hero,
+      color: colors.accent.amberLight,
+    },
+    unit: {
+      ...typography.label,
+      color: colors.accent.amber,
+    },
+    bestStreak: {
+      ...typography.caption,
+      color: colors.text.disabled,
+      marginTop: 2,
+    },
+    rightSection: {
+      alignItems: 'flex-end',
+    },
+    message: {
+      ...typography.caption,
+      color: colors.text.muted,
+    },
+    subMessage: {
+      ...typography.caption,
+      color: colors.text.muted,
+    },
+    freezeInfo: {
+      ...typography.caption,
+      color: colors.text.disabled,
+      marginTop: 4,
+    },
+    freezeButton: {
+      backgroundColor: colors.accent.blueGlow,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderWidth: 1,
+      borderColor: colors.accent.blue + '40',
+    },
+    freezeText: {
+      ...typography.label,
+      color: colors.accent.blueLight,
+      fontWeight: '600',
+    },
+  });
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { Category } from '../types';
 import { categoryEmojis, categoryColors } from '../constants/categories';
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export default function CategoryPill({ category, amount }: Props) {
+  const { colors } = useTheme();
   const accentColor = categoryColors[category] ?? colors.accent.blue;
   const catInfo = colors.category[category as keyof typeof colors.category];
 
@@ -20,7 +21,7 @@ export default function CategoryPill({ category, amount }: Props) {
       <Text style={styles.emoji}>{categoryEmojis[category]}</Text>
       <View style={styles.textContent}>
         <Text style={[styles.name, { color: accentColor }]}>{category}</Text>
-        <Text style={styles.amount}>{formatCurrency(Math.abs(amount))}</Text>
+        <Text style={[styles.amount, { color: colors.text.primary }]}>{formatCurrency(Math.abs(amount))}</Text>
       </View>
     </View>
   );
@@ -52,7 +53,6 @@ const styles = StyleSheet.create({
   },
   amount: {
     ...typography.label,
-    color: colors.text.primary,
     fontWeight: '600',
   },
 });

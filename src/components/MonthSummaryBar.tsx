@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { formatCurrency } from '../utils/formatCurrency';
+import AnimatedNumber from './AnimatedNumber';
 
 interface Props {
   spent: number;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function MonthSummaryBar({ spent, income }: Props) {
+  const { colors } = useTheme();
   const ratio = income > 0 ? Math.min(spent / income, 1.2) : 0;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const remaining = income - spent;
@@ -39,12 +41,14 @@ export default function MonthSummaryBar({ spent, income }: Props) {
     outputRange: ['0%', '100%'],
   });
 
+  const styles = makeStyles(colors);
+
   return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <View>
           <Text style={styles.spentLabel}>Spent this month</Text>
-          <Text style={styles.spentAmount}>{formatCurrency(spent)}</Text>
+          <AnimatedNumber value={spent} formatFn={formatCurrency} style={styles.spentAmount} />
         </View>
         <View style={styles.rightLabels}>
           <Text style={styles.incomeLabel}>of {formatCurrency(income)}</Text>
@@ -63,57 +67,59 @@ export default function MonthSummaryBar({ spent, income }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 12,
-  },
-  spentLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  spentAmount: {
-    ...typography.title,
-    color: colors.text.primary,
-  },
-  rightLabels: {
-    alignItems: 'flex-end',
-  },
-  incomeLabel: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginBottom: 2,
-  },
-  remainingText: {
-    ...typography.label,
-    fontWeight: '600',
-  },
-  barBackground: {
-    height: 6,
-    backgroundColor: colors.border.default,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  projection: {
-    ...typography.caption,
-    color: colors.text.disabled,
-  },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    container: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginBottom: 12,
+    },
+    spentLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
+    spentAmount: {
+      ...typography.title,
+      color: colors.text.primary,
+    },
+    rightLabels: {
+      alignItems: 'flex-end',
+    },
+    incomeLabel: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginBottom: 2,
+    },
+    remainingText: {
+      ...typography.label,
+      fontWeight: '600',
+    },
+    barBackground: {
+      height: 6,
+      backgroundColor: colors.border.default,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    barFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    projection: {
+      ...typography.caption,
+      color: colors.text.disabled,
+    },
+  });
+}

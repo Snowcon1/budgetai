@@ -12,12 +12,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { format } from 'date-fns';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 import { typography } from '../constants/theme';
 import { useAppStore } from '../store/useAppStore';
 import { parseReceipt } from '../utils/parseReceipt';
 import ResultCard from '../components/ResultCard';
 import { Category, Transaction } from '../types';
+import { hapticMedium, hapticSuccess, hapticError } from '../utils/haptics';
 
 interface Props {
   navigation: { goBack: () => void };
@@ -61,7 +62,6 @@ function openFileInput(capture?: boolean): Promise<string | null> {
     input.oncancel = () => resolve(null);
     document.body.appendChild(input);
     input.click();
-    // Clean up DOM element after a short delay
     setTimeout(() => {
       if (document.body.contains(input)) document.body.removeChild(input);
     }, 60000);
@@ -69,6 +69,7 @@ function openFileInput(capture?: boolean): Promise<string | null> {
 }
 
 export default function ReceiptCaptureScreen({ navigation }: Props) {
+  const { colors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [parsedData, setParsedData] = useState<{
@@ -78,7 +79,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
     date: string;
   } | null>(null);
   const cameraRef = useRef<CameraView>(null);
-  const { addTransaction, isDemo, accounts } = useAppStore();
+  const { addTransaction, isDemo, accounts, incrementReceiptsScanned } = useAppStore();
 
   const guideScale = useRef(new Animated.Value(1)).current;
   const processingFade = useRef(new Animated.Value(0)).current;
@@ -116,7 +117,10 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
         category: result.category,
         date: result.date,
       });
+      incrementReceiptsScanned();
+      hapticSuccess();
     } catch {
+      hapticError();
       setParsedData({
         merchant: 'Unknown',
         total: 0,
@@ -129,6 +133,7 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
   };
 
   const handleTakePhoto = async () => {
+    hapticMedium();
     if (isDemo) {
       await processImage('');
       return;
@@ -182,10 +187,13 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
       is_receipt: true,
     };
     await addTransaction(transaction);
+    hapticSuccess();
     navigation.goBack();
   };
 
   const handleRetake = () => setParsedData(null);
+
+  const styles = makeStyles(colors);
 
   // ─── Web UI ────────────────────────────────────────────────────────────────
   if (Platform.OS === 'web') {
@@ -312,246 +320,248 @@ export default function ReceiptCaptureScreen({ navigation }: Props) {
 const CORNER_SIZE = 20;
 const CORNER_WIDTH = 3;
 
-const styles = StyleSheet.create({
-  // ── Native styles ──────────────────────────────────────────────────────────
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-  demoCameraView: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  guideRect: {
-    width: 280,
-    height: 380,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderColor: colors.accent.blue,
-  },
-  cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderTopLeftRadius: 4 },
-  cornerTR: { top: 0, right: 0, borderTopWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderTopRightRadius: 4 },
-  cornerBL: { bottom: 0, left: 0, borderBottomWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderBottomLeftRadius: 4 },
-  cornerBR: { bottom: 0, right: 0, borderBottomWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderBottomRightRadius: 4 },
-  guideText: {
-    ...typography.heading,
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  guideSubtext: {
-    ...typography.label,
-    color: colors.text.secondary,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 44,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  captureButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 4,
-    borderColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  captureInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#fff',
-  },
-  libraryText: {
-    ...typography.label,
-    color: colors.text.primary,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 52,
-    left: 20,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  closeText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  processingCard: {
-    backgroundColor: colors.bg.elevated,
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  processingText: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    marginTop: 14,
-  },
-  processingSubtext: {
-    ...typography.caption,
-    color: colors.text.muted,
-    marginTop: 4,
-  },
-  permissionContainer: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  permissionIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  permissionText: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  permissionButton: {
-    backgroundColor: colors.accent.blue,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    marginBottom: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  permissionButtonText: {
-    color: '#fff',
-    ...typography.subheading,
-    fontWeight: '600',
-  },
-  libraryButton: {
-    paddingVertical: 10,
-  },
-  libraryButtonText: {
-    ...typography.label,
-    color: colors.accent.blue,
-  },
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    // ── Native styles ──────────────────────────────────────────────────────────
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
+    camera: {
+      flex: 1,
+    },
+    demoCameraView: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    overlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    guideRect: {
+      width: 280,
+      height: 380,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    corner: {
+      position: 'absolute',
+      width: CORNER_SIZE,
+      height: CORNER_SIZE,
+      borderColor: colors.accent.blue,
+    },
+    cornerTL: { top: 0, left: 0, borderTopWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderTopLeftRadius: 4 },
+    cornerTR: { top: 0, right: 0, borderTopWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderTopRightRadius: 4 },
+    cornerBL: { bottom: 0, left: 0, borderBottomWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderBottomLeftRadius: 4 },
+    cornerBR: { bottom: 0, right: 0, borderBottomWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderBottomRightRadius: 4 },
+    guideText: {
+      ...typography.heading,
+      color: colors.text.primary,
+      marginBottom: 8,
+    },
+    guideSubtext: {
+      ...typography.label,
+      color: colors.text.secondary,
+      textAlign: 'center',
+      paddingHorizontal: 20,
+    },
+    controls: {
+      position: 'absolute',
+      bottom: 44,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+    },
+    captureButton: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      borderWidth: 4,
+      borderColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    captureInner: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: '#fff',
+    },
+    libraryText: {
+      ...typography.label,
+      color: colors.text.primary,
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 52,
+      left: 20,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
+    },
+    closeText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    processingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    processingCard: {
+      backgroundColor: colors.bg.elevated,
+      borderRadius: 20,
+      padding: 28,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    processingText: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      marginTop: 14,
+    },
+    processingSubtext: {
+      ...typography.caption,
+      color: colors.text.muted,
+      marginTop: 4,
+    },
+    permissionContainer: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    permissionIcon: {
+      fontSize: 48,
+      marginBottom: 16,
+    },
+    permissionText: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    permissionButton: {
+      backgroundColor: colors.accent.blue,
+      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 30,
+      marginBottom: 12,
+      width: '100%',
+      alignItems: 'center',
+    },
+    permissionButtonText: {
+      color: '#fff',
+      ...typography.subheading,
+      fontWeight: '600',
+    },
+    libraryButton: {
+      paddingVertical: 10,
+    },
+    libraryButtonText: {
+      ...typography.label,
+      color: colors.accent.blue,
+    },
 
-  // ── Web styles ─────────────────────────────────────────────────────────────
-  webContainer: {
-    flex: 1,
-    backgroundColor: colors.bg.primary,
-    paddingHorizontal: 24,
-    paddingTop: 72,
-    paddingBottom: 40,
-  },
-  webCloseButton: {
-    position: 'absolute',
-    top: 52,
-    left: 20,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.bg.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  webHeader: {
-    alignItems: 'center',
-    marginBottom: 36,
-  },
-  webTitle: {
-    ...typography.title,
-    fontSize: 26,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: 10,
-  },
-  webSubtitle: {
-    ...typography.body,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  webUploadArea: {
-    backgroundColor: colors.bg.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    padding: 32,
-    alignItems: 'center',
-  },
-  webUploadIcon: {
-    fontSize: 52,
-    marginBottom: 24,
-  },
-  webPrimaryButton: {
-    backgroundColor: colors.accent.blue,
-    borderRadius: 14,
-    paddingVertical: 15,
-    paddingHorizontal: 28,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  webPrimaryButtonText: {
-    color: '#fff',
-    ...typography.subheading,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  webSecondaryButton: {
-    backgroundColor: colors.bg.elevated,
-    borderRadius: 14,
-    paddingVertical: 15,
-    paddingHorizontal: 28,
-    width: '100%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    marginBottom: 16,
-  },
-  webSecondaryButtonText: {
-    ...typography.subheading,
-    color: colors.text.primary,
-    fontSize: 16,
-  },
-  webHint: {
-    ...typography.caption,
-    color: colors.text.disabled,
-    textAlign: 'center',
-  },
-});
+    // ── Web styles ─────────────────────────────────────────────────────────────
+    webContainer: {
+      flex: 1,
+      backgroundColor: colors.bg.primary,
+      paddingHorizontal: 24,
+      paddingTop: 72,
+      paddingBottom: 40,
+    },
+    webCloseButton: {
+      position: 'absolute',
+      top: 52,
+      left: 20,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: colors.bg.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+    },
+    webHeader: {
+      alignItems: 'center',
+      marginBottom: 36,
+    },
+    webTitle: {
+      ...typography.title,
+      fontSize: 26,
+      fontWeight: '700',
+      color: colors.text.primary,
+      marginBottom: 10,
+    },
+    webSubtitle: {
+      ...typography.body,
+      color: colors.text.muted,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    webUploadArea: {
+      backgroundColor: colors.bg.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      padding: 32,
+      alignItems: 'center',
+    },
+    webUploadIcon: {
+      fontSize: 52,
+      marginBottom: 24,
+    },
+    webPrimaryButton: {
+      backgroundColor: colors.accent.blue,
+      borderRadius: 14,
+      paddingVertical: 15,
+      paddingHorizontal: 28,
+      width: '100%',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    webPrimaryButtonText: {
+      color: '#fff',
+      ...typography.subheading,
+      fontWeight: '600',
+      fontSize: 16,
+    },
+    webSecondaryButton: {
+      backgroundColor: colors.bg.elevated,
+      borderRadius: 14,
+      paddingVertical: 15,
+      paddingHorizontal: 28,
+      width: '100%',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      marginBottom: 16,
+    },
+    webSecondaryButtonText: {
+      ...typography.subheading,
+      color: colors.text.primary,
+      fontSize: 16,
+    },
+    webHint: {
+      ...typography.caption,
+      color: colors.text.disabled,
+      textAlign: 'center',
+    },
+  });
+}
