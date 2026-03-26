@@ -9,11 +9,11 @@ import AddToHomeScreen from './src/components/AddToHomeScreen';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 
 function AppContent() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   return (
     <NavigationContainer>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.bg.primary }}>
         <RootNavigator />
         <AddToHomeScreen />
       </View>

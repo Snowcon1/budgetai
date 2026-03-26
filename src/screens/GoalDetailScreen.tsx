@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Modal, TextInput, Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { differenceInDays, format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,6 +31,7 @@ function getGoalEmoji(name: string): string {
 export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { goals, updateGoal, accounts } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
@@ -229,7 +231,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           <Text style={styles.coachButtonText}>⚡ Ask Coach About This Goal</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 + insets.bottom }} />
       </ScrollView>
 
       <MilestoneModal
