@@ -20,6 +20,7 @@ import { generateWeeklyChallenge } from '../utils/weeklyChallenge';
 import { loadFreezesRemaining, saveFreezesRemaining, loadFrozenDates, addFrozenDate } from '../utils/streakFreeze';
 import { evaluateBadges, loadEarnedBadges, saveEarnedBadges } from '../utils/badgeEvaluator';
 import {
+  supabase,
   getTransactions,
   insertTransaction,
   updateTransaction as supabaseUpdateTransaction,
@@ -316,12 +317,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (!userId) return;
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
     set({ isSyncing: true });
     try {
       const syncRes = await fetch(`${supabaseUrl}/functions/v1/plaid-sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({}),
       });
       if (!syncRes.ok) {
         const syncData = await syncRes.json();
@@ -338,19 +344,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!userId) throw new Error('You must be signed in to connect a bank account.');
 
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session. Please sign in again.');
+
+    const authHeader = `Bearer ${session.access_token}`;
 
     const exchangeRes = await fetch(`${supabaseUrl}/functions/v1/plaid-exchange-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ publicToken, userId, institutionName, institutionId }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+      body: JSON.stringify({ publicToken, institutionName, institutionId }),
     });
     const exchangeData = await exchangeRes.json();
     if (!exchangeRes.ok) throw new Error(exchangeData.error ?? 'Failed to exchange token');
 
     const syncRes = await fetch(`${supabaseUrl}/functions/v1/plaid-sync`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+      body: JSON.stringify({}),
     });
     const syncData = await syncRes.json();
     if (!syncRes.ok) throw new Error(syncData.error ?? 'Sync failed');

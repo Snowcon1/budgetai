@@ -1,5 +1,6 @@
 import { Category } from '../types';
 import { categorizeTransaction } from './categorize';
+import { supabase } from '../lib/supabase';
 
 interface ParsedReceipt {
   merchant: string;
@@ -27,11 +28,16 @@ export async function parseReceipt(base64Image: string, isDemo: boolean): Promis
       throw new Error('Supabase not configured');
     }
 
+    // Prefer the user's session token so rate limiting tracks per-account.
+    // Falls back to the anon key (demo / unauthenticated), rate-limited by IP.
+    const { data: { session } } = await supabase.auth.getSession();
+    const authToken = session?.access_token ?? supabaseKey;
+
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-receipt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${authToken}`,
         apikey: supabaseKey,
       },
       body: JSON.stringify({ base64Image }),
@@ -39,6 +45,9 @@ export async function parseReceipt(base64Image: string, isDemo: boolean): Promis
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
+      if (response.status === 429) {
+        throw new Error(err.error ?? 'Daily receipt scan limit reached. Please try again tomorrow.');
+      }
       throw new Error(err.error ?? `Server error: ${response.status}`);
     }
 

@@ -1,6 +1,7 @@
 import { Transaction, Account, Goal, Subscription, HealthScoreBreakdown, ChatMessage, ActionCard } from '../types';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { PersonaId, DEFAULT_PERSONA } from '../constants/personas';
+import { supabase } from './supabase';
 
 export interface FinancialContext {
   accounts: Account[];
@@ -44,6 +45,12 @@ export async function sendChatMessage(
   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl) throw new Error('Supabase URL not configured.');
 
+  // Prefer the user's session token so rate limiting tracks per-account.
+  // Falls back to the anon key (demo mode / unauthenticated) which the edge
+  // function will then rate-limit by IP instead.
+  const { data: { session } } = await supabase.auth.getSession();
+  const authToken = session?.access_token ?? supabaseKey ?? '';
+
   const now = new Date();
   const thisMonthTxns = context.allTransactions.filter((t) => {
     const d = new Date(t.date);
@@ -54,7 +61,8 @@ export async function sendChatMessage(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(supabaseKey && { Authorization: `Bearer ${supabaseKey}`, apikey: supabaseKey }),
+      'Authorization': `Bearer ${authToken}`,
+      ...(supabaseKey && { apikey: supabaseKey }),
     },
     body: JSON.stringify({
       userMessage,
@@ -75,7 +83,12 @@ export async function sendChatMessage(
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error ?? `Edge function error: ${response.status}`);
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error(data.error ?? 'Daily message limit reached. Please try again tomorrow.');
+    }
+    throw new Error(data.error ?? `Edge function error: ${response.status}`);
+  }
 
   if (data?.message) {
     // Strip any markdown code fences that slipped through

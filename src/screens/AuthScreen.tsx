@@ -57,8 +57,8 @@ export default function AuthScreen({ navigation }: Props) {
       Alert.alert('Missing Fields', 'Please enter your email and password.');
       return;
     }
-    if (password.length < 6) {
-      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+    if (password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
     setLoading(true);
@@ -171,7 +171,7 @@ export default function AuthScreen({ navigation }: Props) {
           />
 
           {mode === 'signup' && (
-            <Text style={styles.passwordHint}>At least 6 characters</Text>
+            <Text style={styles.passwordHint}>At least 8 characters</Text>
           )}
 
           <TouchableOpacity

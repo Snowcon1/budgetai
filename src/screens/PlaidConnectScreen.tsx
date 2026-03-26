@@ -56,7 +56,7 @@ function sendMsg(data) {
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(msg);
     } else if (window.parent && window.parent !== window) {
-      window.parent.postMessage(msg, '*');
+      window.parent.postMessage(msg, window.location.origin || '*');
     }
   } catch(e) { console.log('postMessage error', e); }
 }
@@ -230,7 +230,7 @@ export default function PlaidConnectScreen({ navigation }: Props) {
           onMessage={handleWebViewMessage}
           javaScriptEnabled
           domStorageEnabled
-          originWhitelist={['*']}
+          originWhitelist={['https://*', 'http://*', 'about:*', 'data:*']}
           style={styles.webView}
         />
       </View>

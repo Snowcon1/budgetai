@@ -1,9 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { resolveIdentifier, checkRateLimit } from '../_shared/rateLimit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// 200 messages/day — a very active user sends ~20–30; this only fires against abuse
+const DAILY_LIMIT = 200;
 
 const FORMAT_RULES = `
 RESPONSE FORMAT RULES (follow exactly):
@@ -61,19 +66,33 @@ serve(async (req) => {
   }
 
   try {
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'OpenAI API key not configured on server' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Rate limiting ────────────────────────────────────────────────────────
+    const serviceClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const identifier = await resolveIdentifier(req);
+    const allowed = await checkRateLimit(serviceClient, identifier, 'chat', DAILY_LIMIT);
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Daily message limit reached. Please try again tomorrow.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { userMessage, conversationHistory, context, persona } = await req.json();
 
     if (!userMessage || typeof userMessage !== 'string') {
       return new Response(JSON.stringify({ error: 'userMessage is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'OpenAI API key not configured on server' }), {
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
