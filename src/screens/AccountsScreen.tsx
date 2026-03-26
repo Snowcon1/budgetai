@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { format } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
@@ -36,7 +37,7 @@ function fmtShort(n: number): string {
 
 export default function AccountsScreen({ navigation }: Props) {
   const { colors } = useTheme();
-  const { accounts, isDemo, userId, loadUserData } = useAppStore();
+  const { accounts, isDemo, userId, loadUserData, syncPlaid, isSyncing } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
 
   const checking = accounts.filter((a) => a.type === 'checking');
@@ -52,10 +53,18 @@ export default function AccountsScreen({ navigation }: Props) {
   const styles = makeStyles(colors);
 
   const handleRefresh = async () => {
+    setRefreshing(true);
     if (!isDemo && userId) {
-      setRefreshing(true);
-      await loadUserData(userId);
-      setRefreshing(false);
+      await syncPlaid();
+    } else if (isDemo) {
+      await loadUserData(userId ?? '');
+    }
+    setRefreshing(false);
+  };
+
+  const handleSyncPress = async () => {
+    if (!isDemo && userId) {
+      await syncPlaid();
     }
   };
 
@@ -113,12 +122,26 @@ export default function AccountsScreen({ navigation }: Props) {
       >
         <View style={styles.headerRow}>
           <Text style={styles.screenTitle}>Accounts</Text>
-          <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={() => navigation.getParent()?.navigate('Settings')}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {!isDemo && accounts.length > 0 && (
+              <TouchableOpacity
+                style={styles.syncBtn}
+                onPress={handleSyncPress}
+                disabled={isSyncing}
+              >
+                {isSyncing
+                  ? <ActivityIndicator size="small" color={colors.accent.blue} />
+                  : <Text style={styles.syncIcon}>↻</Text>
+                }
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => navigation.getParent()?.navigate('Settings')}
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.netWorthCard}>
@@ -234,6 +257,26 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     screenTitle: {
       ...typography.title,
       color: colors.text.primary,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    syncBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: colors.bg.surface,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    syncIcon: {
+      fontSize: 18,
+      color: colors.accent.blue,
+      fontWeight: '600',
     },
     settingsBtn: {
       padding: 4,

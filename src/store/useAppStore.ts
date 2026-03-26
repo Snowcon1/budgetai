@@ -64,6 +64,8 @@ interface AppState {
   loadUserData: (userId: string) => Promise<void>;
   completeSetup: (userId: string, name: string, income: number, useSampleData: boolean) => Promise<void>;
   connectPlaid: (publicToken: string, institutionName: string, institutionId: string) => Promise<void>;
+  syncPlaid: () => Promise<void>;
+  isSyncing: boolean;
   initDemo: () => void;
   exitDemo: () => void;
   initReal: () => void;
@@ -173,6 +175,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   freezesRemaining: 3,
   weeklyChallenge: defaultWeeklyChallenge,
   isPlaidConnected: false,
+  isSyncing: false,
   persona: DEFAULT_PERSONA,
   earnedBadges: [],
   newlyEarnedBadge: null,
@@ -303,6 +306,27 @@ export const useAppStore = create<AppState>((set, get) => ({
         isPlaidConnected: false,
         weeklyChallenge: defaultWeeklyChallenge,
       });
+    }
+  },
+
+  syncPlaid: async () => {
+    const { userId } = get();
+    if (!userId) return;
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+    set({ isSyncing: true });
+    try {
+      const syncRes = await fetch(`${supabaseUrl}/functions/v1/plaid-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      if (!syncRes.ok) {
+        const syncData = await syncRes.json();
+        throw new Error(syncData.error ?? 'Sync failed');
+      }
+      await get().loadUserData(userId);
+    } finally {
+      set({ isSyncing: false });
     }
   },
 

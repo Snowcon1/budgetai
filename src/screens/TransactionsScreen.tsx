@@ -27,7 +27,7 @@ interface Props {
 export default function TransactionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { transactions } = useAppStore();
+  const { transactions, isDemo, syncPlaid, loadUserData, userId } = useAppStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [refreshing, setRefreshing] = useState(false);
@@ -71,7 +71,11 @@ export default function TransactionsScreen({ navigation }: Props) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    if (!isDemo && userId) {
+      await syncPlaid();
+    } else if (userId) {
+      await loadUserData(userId);
+    }
     setRefreshing(false);
   };
 
