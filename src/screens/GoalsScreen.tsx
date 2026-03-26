@@ -31,6 +31,7 @@ export default function GoalsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const { goals, addGoal, user, accounts } = useAppStore();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newMonths, setNewMonths] = useState('6');
@@ -41,6 +42,8 @@ export default function GoalsScreen({ navigation }: Props) {
     newType === 'savings' ? a.type === 'savings' || a.type === 'checking' : a.type === 'credit'
   );
 
+  const activeGoals = goals.filter((g) => (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) < 1);
+  const completedGoals = goals.filter((g) => (g.target_amount > 0 ? g.current_amount / g.target_amount : 0) >= 1);
   const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0);
 
   const handleAddGoal = async () => {
@@ -113,7 +116,7 @@ export default function GoalsScreen({ navigation }: Props) {
           <Text style={styles.totalAmount}>{formatCurrency(totalSaved)}</Text>
         </View>
 
-        {goals.map((g, index) => (
+        {activeGoals.map((g, index) => (
           <GoalCard
             key={g.id}
             goal={g}
@@ -121,6 +124,24 @@ export default function GoalsScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('GoalDetail', { goalId: g.id })}
           />
         ))}
+
+        {completedGoals.length > 0 && (
+          <>
+            <TouchableOpacity style={styles.completedToggle} onPress={() => setShowCompleted((v) => !v)}>
+              <Text style={styles.completedToggleText}>
+                {showCompleted ? `Hide completed (${completedGoals.length})` : `Show ${completedGoals.length} completed`}
+              </Text>
+            </TouchableOpacity>
+            {showCompleted && completedGoals.map((g, index) => (
+              <GoalCard
+                key={g.id}
+                goal={g}
+                index={index}
+                onPress={() => navigation.navigate('GoalDetail', { goalId: g.id })}
+              />
+            ))}
+          </>
+        )}
 
         <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
           <Text style={styles.addButtonText}>+ Add Goal</Text>
@@ -244,6 +265,16 @@ function makeGoalsStyles(colors: ReturnType<typeof useTheme>['colors']) { return
   totalAmount: {
     ...typography.hero,
     color: colors.accent.green,
+  },
+  completedToggle: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completedToggleText: {
+    ...typography.label,
+    color: colors.accent.blue,
+    fontWeight: '600',
   },
   addButton: {
     borderWidth: 1.5,

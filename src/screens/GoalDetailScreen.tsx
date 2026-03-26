@@ -10,10 +10,12 @@ import ConfettiOverlay from '../components/ConfettiOverlay';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency } from '../utils/formatCurrency';
 import MilestoneModal from '../components/MilestoneModal';
+import { loadCelebratedGoals, markGoalCelebrated } from '../utils/celebratedGoals';
 
 interface Props {
   navigation: {
     navigate: (screen: string, params?: Record<string, unknown>) => void;
+    goBack: () => void;
   };
   route: { params: { goalId: string } };
 }
@@ -32,7 +34,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   const { goalId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { goals, updateGoal, accounts } = useAppStore();
+  const { goals, updateGoal, deleteGoal, accounts } = useAppStore();
   const goal = goals.find((g) => g.id === goalId);
   const [showMilestone, setShowMilestone] = useState(false);
   const [milestoneText, setMilestoneText] = useState('');
@@ -43,46 +45,25 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
   const ringAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [displayPercent, setDisplayPercent] = useState(0);
+  const celebratedRef = useRef<Set<string>>(new Set());
+  const celebratedLoaded = useRef(false);
 
-  if (!goal) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Goal not found</Text>
-      </View>
-    );
-  }
-
-  const linkedAccount = goal.linked_account_id
-    ? accounts.find((a) => a.id === goal.linked_account_id)
-    : null;
-  const isLinked = !!linkedAccount;
-
-  const handleAddContribution = () => {
-    const amount = parseFloat(contributionAmount);
-    if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
-      return;
-    }
-    const newAmount = Math.min(goal.current_amount + amount, goal.target_amount);
-    updateGoal(goal.id, { current_amount: newAmount });
-    hapticSuccess();
-    setShowContribution(false);
-    setContributionAmount('');
-  };
-
-  const progress = goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0;
+  // Derive progress here so useEffect can use it (safe when goal is undefined)
+  const progress = goal ? (goal.target_amount > 0 ? goal.current_amount / goal.target_amount : 0) : 0;
   const percentage = Math.round(progress * 100);
-  const daysLeft = differenceInDays(new Date(goal.target_date), new Date());
-  const monthsLeft = Math.max(Math.ceil(daysLeft / 30), 1);
-  const remaining = goal.target_amount - goal.current_amount;
-  const monthlyNeeded = remaining / monthsLeft;
 
-  const size = 180;
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-
+  // Load which milestones have already been celebrated (runs once on mount)
   useEffect(() => {
+    loadCelebratedGoals().then((set) => {
+      celebratedRef.current = set;
+      celebratedLoaded.current = true;
+    });
+  }, []);
+
+  // All animation + celebration logic — runs whenever percentage changes
+  useEffect(() => {
+    if (!goal) return;
+
     // Animate ring
     Animated.timing(ringAnim, {
       toValue: Math.min(progress, 1),
@@ -102,10 +83,12 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
     };
     tick();
 
-    // Milestone check + bounce
+    // Milestone check + bounce — only fire if not already celebrated
     const milestones = [25, 50, 75, 100];
     for (const m of milestones) {
       if (percentage >= m && percentage < m + 5) {
+        const celebKey = `${goal.id}_${m}`;
+        if (celebratedRef.current.has(celebKey)) break; // already celebrated
         setTimeout(() => {
           Animated.sequence([
             Animated.spring(scaleAnim, { toValue: 1.05, useNativeDriver: true, tension: 120, friction: 7 }),
@@ -116,23 +99,83 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           setShowMilestone(true);
           hapticHeavy();
           if (m === 100) setShowCelebration(true);
+          markGoalCelebrated(celebKey);
+          celebratedRef.current.add(celebKey);
         }, 1400);
         break;
       }
     }
   }, [percentage]);
 
+  // Styles defined before any conditional returns so they're always available
+  const styles = makeDetailStyles(colors);
+
+  if (!goal) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Goal not found</Text>
+      </View>
+    );
+  }
+
+  const linkedAccount = goal.linked_account_id
+    ? accounts.find((a) => a.id === goal.linked_account_id)
+    : null;
+  const isLinked = !!linkedAccount;
+  const isCompleted = percentage >= 100;
+
+  const handleAddContribution = () => {
+    const amount = parseFloat(contributionAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      return;
+    }
+    const newAmount = Math.min(goal.current_amount + amount, goal.target_amount);
+    updateGoal(goal.id, { current_amount: newAmount });
+    hapticSuccess();
+    setShowContribution(false);
+    setContributionAmount('');
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Goal',
+      `Remove "${goal.name}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteGoal(goal.id);
+            navigation.goBack();
+          },
+        },
+      ]
+    );
+  };
+
+  const daysLeft = differenceInDays(new Date(goal.target_date), new Date());
+  const monthsLeft = Math.max(Math.ceil(daysLeft / 30), 1);
+  const remaining = goal.target_amount - goal.current_amount;
+  const monthlyNeeded = remaining / monthsLeft;
+
+  const size = 180;
+  const strokeWidth = 14;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
   const strokeDashoffset = ringAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [circumference, 0],
   });
 
-  const ringColor =
-    percentage >= 75 ? colors.accent.green : percentage >= 50 ? colors.accent.blue : colors.accent.amber;
-  const ringGlow =
-    percentage >= 75 ? colors.accent.greenGlow : percentage >= 50 ? colors.accent.blueGlow : colors.accent.amberGlow;
-
-  const styles = makeDetailStyles(colors);
+  const ringColor = isCompleted
+    ? colors.accent.green
+    : percentage >= 75 ? colors.accent.green : percentage >= 50 ? colors.accent.blue : colors.accent.amber;
+  const ringGlow = isCompleted
+    ? colors.accent.greenGlow
+    : percentage >= 75 ? colors.accent.greenGlow : percentage >= 50 ? colors.accent.blueGlow : colors.accent.amberGlow;
 
   return (
     <View style={styles.container}>
@@ -171,7 +214,7 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
               </Svg>
               <View style={styles.ringCenter}>
                 <Text style={[styles.ringPercent, { color: ringColor }]}>{displayPercent}%</Text>
-                <Text style={styles.ringLabel}>complete</Text>
+                <Text style={styles.ringLabel}>{isCompleted ? '🎉 done!' : 'complete'}</Text>
               </View>
             </View>
           </Animated.View>
@@ -182,6 +225,14 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           <Text style={styles.targetAmount}> / {formatCurrency(goal.target_amount)}</Text>
         </View>
 
+        {/* Goal achieved banner */}
+        {isCompleted && (
+          <View style={styles.achievedBanner}>
+            <Text style={styles.achievedText}>🎉 Goal Achieved!</Text>
+            <Text style={styles.achievedSub}>You hit your target. Amazing work.</Text>
+          </View>
+        )}
+
         <View style={styles.statsCard}>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Target Date</Text>
@@ -191,14 +242,24 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
             <Text style={styles.statLabel}>Days Remaining</Text>
             <Text style={styles.statValue}>{daysLeft > 0 ? daysLeft : 'Past due'}</Text>
           </View>
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Monthly Savings Needed</Text>
-            <Text style={[styles.statValue, { color: colors.accent.amber }]}>{formatCurrency(monthlyNeeded)}</Text>
-          </View>
-          <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.statLabel}>Still Needed</Text>
-            <Text style={styles.statValue}>{formatCurrency(remaining)}</Text>
-          </View>
+          {!isCompleted && (
+            <>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Monthly Savings Needed</Text>
+                <Text style={[styles.statValue, { color: colors.accent.amber }]}>{formatCurrency(monthlyNeeded)}</Text>
+              </View>
+              <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.statLabel}>Still Needed</Text>
+                <Text style={styles.statValue}>{formatCurrency(remaining)}</Text>
+              </View>
+            </>
+          )}
+          {isCompleted && (
+            <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
+              <Text style={styles.statLabel}>Amount Saved</Text>
+              <Text style={[styles.statValue, { color: colors.accent.green }]}>{formatCurrency(goal.current_amount)}</Text>
+            </View>
+          )}
         </View>
 
         {/* Linked account badge */}
@@ -210,8 +271,8 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        {/* Add contribution — only for unlinked goals */}
-        {!isLinked && (
+        {/* Add contribution — only for unlinked, incomplete goals */}
+        {!isLinked && !isCompleted && (
           <TouchableOpacity
             style={styles.contributionButton}
             onPress={() => setShowContribution(true)}
@@ -229,6 +290,10 @@ export default function GoalDetailScreen({ navigation, route }: Props) {
           }
         >
           <Text style={styles.coachButtonText}>⚡ Ask Coach About This Goal</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.deleteButtonText}>Delete Goal</Text>
         </TouchableOpacity>
 
         <View style={{ height: 80 + insets.bottom }} />
@@ -335,7 +400,7 @@ function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { retur
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'baseline',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   currentAmount: {
     ...typography.title,
@@ -344,6 +409,25 @@ function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { retur
   targetAmount: {
     ...typography.heading,
     color: colors.text.muted,
+  },
+  achievedBanner: {
+    backgroundColor: colors.accent.greenGlow,
+    borderWidth: 1,
+    borderColor: colors.accent.green + '60',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  achievedText: {
+    ...typography.heading,
+    color: colors.accent.green,
+    marginBottom: 4,
+  },
+  achievedSub: {
+    ...typography.caption,
+    color: colors.accent.green + 'CC',
   },
   statsCard: {
     backgroundColor: colors.bg.surface,
@@ -375,6 +459,7 @@ function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { retur
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
+    marginBottom: 12,
     shadowColor: colors.accent.blue,
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -385,6 +470,17 @@ function makeDetailStyles(colors: ReturnType<typeof useTheme>['colors']) { retur
     color: '#fff',
     ...typography.subheading,
     fontWeight: '600',
+  },
+  deleteButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.accent.red + '40',
+  },
+  deleteButtonText: {
+    ...typography.label,
+    color: colors.accent.red,
   },
   errorText: {
     ...typography.body,

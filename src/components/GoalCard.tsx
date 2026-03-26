@@ -113,15 +113,25 @@ export default function GoalCard({ goal, compact = false, onPress, index = 0 }: 
 
   const styles = makeStyles(colors);
 
+  const isCompleted = percentage >= 100;
+
   if (compact) {
     return (
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-        <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.8}>
+        <TouchableOpacity style={[styles.compactCard, isCompleted && { opacity: 0.8 }]} onPress={onPress} activeOpacity={0.8}>
           <View style={styles.compactTop}>
             <Text style={styles.emoji}>{emoji}</Text>
-            <GoalRing percentage={percentage} size={52} colors={colors} />
+            <View>
+              <GoalRing percentage={percentage} size={52} colors={colors} />
+              {isCompleted && (
+                <View style={styles.completedBadge}>
+                  <Text style={styles.completedBadgeText}>✓</Text>
+                </View>
+              )}
+            </View>
           </View>
           <Text style={styles.compactName} numberOfLines={1}>{goal.name}</Text>
+          {isCompleted && <Text style={[styles.compactName, { color: colors.accent.green, fontSize: 10 }]}>Completed</Text>}
         </TouchableOpacity>
       </Animated.View>
     );
@@ -140,16 +150,27 @@ export default function GoalCard({ goal, compact = false, onPress, index = 0 }: 
       : colors.accent.blue;
 
   return (
-    <TouchableOpacity style={styles.fullCard} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.fullCard, isCompleted && { opacity: 0.8 }]} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.headerRow}>
         <Text style={styles.emoji}>{emoji}</Text>
         <View style={styles.headerText}>
           <Text style={styles.fullName}>{goal.name}</Text>
-          <Text style={styles.daysLeft}>
-            {daysLeft > 0 ? `${daysLeft} days left` : 'Past due'}
-          </Text>
+          {isCompleted ? (
+            <Text style={[styles.daysLeft, { color: colors.accent.green, fontWeight: '600' }]}>Completed</Text>
+          ) : (
+            <Text style={styles.daysLeft}>
+              {daysLeft > 0 ? `${daysLeft} days left` : 'Past due'}
+            </Text>
+          )}
         </View>
-        <GoalRing percentage={percentage} size={72} colors={colors} />
+        <View>
+          <GoalRing percentage={percentage} size={72} colors={colors} />
+          {isCompleted && (
+            <View style={[styles.completedBadge, { width: 22, height: 22, borderRadius: 11, bottom: 2, right: 2 }]}>
+              <Text style={[styles.completedBadgeText, { fontSize: 12 }]}>✓</Text>
+            </View>
+          )}
+        </View>
       </View>
       <View style={styles.fullBarBg}>
         <Animated.View style={[styles.fullBarFill, { width: animatedBarWidth, backgroundColor: ringColor }]} />
@@ -235,6 +256,22 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       ...typography.label,
       color: colors.text.muted,
       marginLeft: 4,
+    },
+    completedBadge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: colors.accent.green,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    completedBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '700',
     },
   });
 }

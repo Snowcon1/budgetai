@@ -27,6 +27,7 @@ import {
   getGoals,
   insertGoal,
   updateGoal as supabaseUpdateGoal,
+  deleteGoal as supabaseDeleteGoal,
   getAccounts,
   getChatSessions,
   insertChatMessage,
@@ -81,6 +82,7 @@ interface AppState {
   // Goals
   addGoal: (g: Goal) => Promise<Goal | null>;
   updateGoal: (id: string, changes: Partial<Goal>) => void;
+  deleteGoal: (id: string) => void;
 
   // Chat
   addChatMessage: (m: ChatMessage) => void;
@@ -517,6 +519,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       supabaseUpdateGoal(id, changes).catch(() => {
         // Silent
       });
+    }
+  },
+
+  deleteGoal: (id: string) => {
+    set((state) => ({ goals: state.goals.filter((g) => g.id !== id) }));
+    get().recalculateHealthScore();
+    const { isDemo } = get();
+    if (!isDemo) {
+      supabaseDeleteGoal(id).catch(() => {});
     }
   },
 

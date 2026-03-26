@@ -134,6 +134,14 @@ export async function updateGoal(
   }
 }
 
+export async function deleteGoal(id: string): Promise<void> {
+  try {
+    await supabase.from('goals').delete().eq('id', id);
+  } catch {
+    // Silent
+  }
+}
+
 // ─── Accounts ─────────────────────────────────────────────────────────────────
 
 export async function getAccounts(userId: string): Promise<SupabaseResponse<Account[]>> {
