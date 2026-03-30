@@ -76,11 +76,11 @@ nav ul a:hover{color:var(--t1);background:rgba(255,255,255,.05)}
 #ham.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
 
 /* MOBILE MENU */
-#mob-menu{position:fixed;inset:0;z-index:300;background:rgba(15,23,42,.97);backdrop-filter:blur(24px);display:flex;flex-direction:column;padding:24px 24px 40px;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+#mob-menu{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.97);backdrop-filter:blur(24px);display:flex;flex-direction:column;padding:24px 24px 40px;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
 #mob-menu.open{transform:translateX(0)}
 .mob-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:48px}
 #mob-close{background:none;border:none;cursor:none;color:var(--t2);font-size:1.4rem;padding:4px}
-.mob-links{display:flex;flex-direction:column;gap:4px;flex:1}
+.mob-links{position:static;top:auto;left:auto;right:auto;height:auto;min-height:0;padding:0;background:none;backdrop-filter:none;border:none;z-index:auto;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:4px;flex:1;overflow-y:auto}
 .mob-links a{font-size:1.6rem;font-weight:700;color:var(--t2);padding:12px 0;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;transition:color .2s}
 .mob-links a::after{content:'↗';font-size:1rem;opacity:.4}
 .mob-links a:hover{color:var(--t1)}
@@ -470,7 +470,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 @media(pointer:coarse){#cur,#cur-ring{display:none!important}*{cursor:auto!important}}
 
 @media(max-width:900px){
-  nav{padding:0 20px}
+  nav:not(.mob-links){padding:0 20px}
   #ham{display:flex}
   nav ul,.nav-r .btn-ghost-sm{display:none}
   .hero{padding:100px 24px 60px}
@@ -1093,10 +1093,16 @@ if(premForm)premForm.addEventListener('submit',function(e){
 
 /* TOAST */
 var toastData=[
-  {icon:'🎉',title:'Jordan just joined!',msg:'Atlanta, GA secured a Premium spot.'},
-  {icon:'⚡',title:'Priya locked in 2 free months!',msg:'New York, NY is on the waitlist.'},
+  {icon:'🎉',title:'Jordan just joined!',msg:'Atlanta, GA locked in a Premium spot.'},
+  {icon:'🏆',title:'Priya claimed 2 free months!',msg:'New York, NY is on the waitlist.'},
   {icon:'🔥',title:'847 spots remaining',msg:'Premium waitlist is filling up fast.'},
   {icon:'😎',title:'Marcus just signed up!',msg:'Austin, TX is ready to Pulse.'},
+  {icon:'🚀',title:'Aaliyah secured early access!',msg:'Chicago, IL joined the waitlist.'},
+  {icon:'💸',title:'Tyler saved $340 this month',msg:'Via Pulse\'s AI budget coach.'},
+  {icon:'✨',title:'Zoe just joined!',msg:'Miami, FL claimed her free months.'},
+  {icon:'📸',title:'Scan streak unlocked',msg:'A user scanned 30 receipts in a row.'},
+  {icon:'🎯',title:'Goal hit!',msg:'A user just paid off their credit card.'},
+  {icon:'🌟',title:'Imani locked in Premium!',msg:'Seattle, WA is saving smarter.'},
 ];
 var tIdx=0;
 function fireToast(icon,title,msg){
@@ -1112,7 +1118,7 @@ function fireToast(icon,title,msg){
 }
 var tClose=document.querySelector('.t-close');
 if(tClose)tClose.addEventListener('click',function(){var t=document.getElementById('toast');if(t)t.classList.remove('show');});
-setTimeout(function(){fireToast();setInterval(fireToast,12000);},3000);
+setTimeout(function(){fireToast();setInterval(fireToast,25000);},10000);
 
 /* COOKIE */
 var ck=document.getElementById('cookie');
