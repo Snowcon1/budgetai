@@ -11,6 +11,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="apple-touch-icon" href="assets/logo.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pulse">
 <style>
 :root{
   --w1:#3B82F6;--w2:#8B5CF6;--w3:#EC4899;--w4:#F97316;--w5:#F59E0B;
@@ -462,6 +467,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 *:focus-visible{outline:2px solid var(--w2);outline-offset:3px;border-radius:4px}
 
 @media print{#loader,#cur,#cur-ring,#scroll-bar,#announce,#ham,#mob-menu,#toast,#cookie,#back-top,nav{display:none!important}body{background:#fff;color:#000;cursor:auto}.grad-text{-webkit-text-fill-color:#000;background:none}}
+@media(pointer:coarse){#cur,#cur-ring{display:none!important}*{cursor:auto!important}}
 
 @media(max-width:900px){
   nav{padding:0 20px}
