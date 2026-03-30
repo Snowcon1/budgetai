@@ -528,7 +528,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
     <a href="#community">Community</a>
     <a href="#premium">Premium</a>
     <a href="#faq">FAQ</a>
-    <a href="#waitlist">Waitlist</a>
+    <a href="#prem-form">Join Waitlist</a>
   </nav>
   <a href="#premium" class="mob-cta">⚡ Get 2 Months Free</a>
 </div>
@@ -544,7 +544,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
   </ul>
   <div class="nav-r">
     <a href="#" class="btn-ghost-sm">Sign In</a>
-    <a href="#waitlist" class="btn-cta">Get Early Access</a>
+    <a href="#prem-form" class="btn-cta">Get Early Access</a>
     <button id="ham" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
@@ -564,7 +564,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
     <h1 class="hero-h">Finance that finally<br><span class="grad-text">feels like you.</span></h1>
     <p class="hero-sub">Pulse is the first AI-powered budgeting app built for Gen Z — receipt scanning, a personal finance coach, and a design you'll actually open every day.</p>
     <div class="hero-actions">
-      <a href="#waitlist" class="btn-primary">Join the Waitlist — It's Free</a>
+      <a href="#prem-form" class="btn-primary">Join the Waitlist — It's Free</a>
       <a href="#features" class="btn-outline">See how it works</a>
     </div>
     <div class="hero-proof">
@@ -868,7 +868,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
           <div class="pfi dim"><span class="pchk n">—</span>Unlimited receipt scanning</div>
           <div class="pfi dim"><span class="pchk n">—</span>Credit score monitoring</div>
         </div>
-        <a href="#waitlist" class="btn-free">Get Started Free</a>
+        <a href="#prem-form" class="btn-free">Get Started Free</a>
       </div>
       <div class="pcard feat">
         <div class="pbadge prem">⚡ Premium</div>
@@ -922,27 +922,6 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
   </div>
 </section>
 
-<!-- WAITLIST FORM -->
-<section class="form-section" id="waitlist">
-  <div class="form-inner">
-    <div class="form-ey"><div class="label" style="margin:0 auto 14px"><span class="ldot"></span>Early Access</div></div>
-    <h2 class="form-h reveal">Get early access <span class="grad-text">to Pulse.</span></h2>
-    <p class="form-sub reveal">Limited spots. Be among the first to experience money done differently.</p>
-    <div class="form-box reveal">
-      <form class="form-grid" id="pulseForm" novalidate>
-        <div class="fg"><label>First Name</label><input type="text" placeholder="Alex" required autocomplete="given-name"></div>
-        <div class="fg"><label>Last Name</label><input type="text" placeholder="Rivera" required autocomplete="family-name"></div>
-        <div class="fg full"><label>Email</label><input type="email" placeholder="alex@email.com" required autocomplete="email"></div>
-        <div class="fg full"><label>Instagram <span style="opacity:.4;text-transform:none;font-size:.78rem">(optional)</span></label><input type="text" placeholder="@yourhandle" autocomplete="off"></div>
-        <div class="fg full"><label>Biggest money struggle?</label><select required><option value="" disabled selected>Pick one...</option><option>I spend without thinking and panic later</option><option>I never know where my money goes</option><option>Saving feels impossible</option><option>Irregular income makes budgeting hard</option><option>I just want to understand money better</option></select></div>
-        <div class="fg full"><label>Anything else? <span style="opacity:.4;text-transform:none;font-size:.78rem">(optional)</span></label><textarea placeholder="Tell us what you wish existed..."></textarea></div>
-        <div class="fg full"><label class="form-check"><input type="checkbox" required><span>I'm good with Pulse sending me updates — no spam, ever. <a href="#">Privacy policy →</a></span></label></div>
-        <div class="fg full"><button type="submit" class="btn-submit">Secure My Spot →</button></div>
-      </form>
-      <div class="form-done" id="formDone"><div class="done-icon">⚡</div><h3>You're in.</h3><p>Welcome to the Pulse waitlist. We'll reach out when it's your turn.</p></div>
-    </div>
-  </div>
-</section>
 
 </main>
 
@@ -1102,32 +1081,6 @@ if(premForm)premForm.addEventListener('submit',function(e){
     var sp=document.getElementById('spots-left');
     if(sp){var n=parseInt(sp.textContent)||847;sp.textContent=(n-1)+' spots left';}
     fireToast('🎉','You just locked in 2 free months!','Welcome to Pulse Premium waitlist.');
-  });
-});
-var freeForm=document.getElementById('pulseForm');
-var freeDone=document.getElementById('formDone');
-if(freeForm)freeForm.addEventListener('submit',function(e){
-  e.preventDefault();
-  var btn=freeForm.querySelector('button[type="submit"]');
-  var origTxt=btn.textContent;
-  btn.textContent='Securing your spot…';btn.disabled=true;
-  var payload={
-    first_name:(freeForm.querySelector('[autocomplete="given-name"]')||{}).value.trim(),
-    last_name:(freeForm.querySelector('[autocomplete="family-name"]')||{}).value.trim(),
-    email:(freeForm.querySelector('[autocomplete="email"]')||{}).value.trim(),
-    instagram:((freeForm.querySelector('[autocomplete="off"]')||{}).value||'').trim()||null,
-    money_struggle:(freeForm.querySelector('select')||{}).value||null,
-    message:((freeForm.querySelector('textarea')||{}).value||'').trim()||null,
-    plan_type:'free',
-    source:'waitlist',
-    consent:true
-  };
-  _sb.from('signups').insert(payload).then(function(res){
-    btn.disabled=false;
-    if(res.error&&res.error.code!=='23505'){btn.textContent=origTxt;fireToast('⚠️','Something went wrong','Please try again in a moment.');return;}
-    freeForm.style.display='none';
-    if(freeDone)freeDone.classList.add('show');
-    fireToast('⚡','You joined the waitlist!',"We'll reach out when it's your turn.");
   });
 });
 
