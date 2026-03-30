@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <clipPath id="c">
+      <rect width="300" height="300" rx="68"/>
+    </clipPath>
+    <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3B82F6" stop-opacity="0"/>
+      <stop offset="8%"  stop-color="#3B82F6"/>
+      <stop offset="40%" stop-color="#818CF8"/>
+      <stop offset="65%" stop-color="#C084FC"/>
+      <stop offset="90%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="blm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3B82F6" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#818CF8" stop-opacity="0.28"/>
+      <stop offset="60%" stop-color="#C084FC" stop-opacity="0.28"/>
+      <stop offset="85%" stop-color="#EC4899" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="bg1" cx="50%" cy="42%" r="55%">
+      <stop offset="0%"   stop-color="#1E1B4B" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#1E1B4B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bg2" cx="39%" cy="19%" r="28%">
+      <stop offset="0%"   stop-color="#7C3AED" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vig" cx="50%" cy="50%" r="72%">
+      <stop offset="0%"   stop-color="#080A14" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#080A14" stop-opacity="0.85"/>
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#c)">
+    <!-- Base dark navy -->
+    <rect width="300" height="300" fill="#0C0E1A"/>
+    <!-- Body glow -->
+    <rect width="300" height="300" fill="url(#bg1)"/>
+    <!-- Spike bloom behind R-wave peak -->
+    <rect width="300" height="300" fill="url(#bg2)"/>
+    <!-- Corner vignette -->
+    <rect width="300" height="300" fill="url(#vig)"/>
+    <!-- Bloom cast beneath EKG line -->
+    <ellipse cx="150" cy="166" rx="90" ry="20" fill="url(#blm)"/>
+    <!-- Glow halo: same path, doubled width, low opacity -->
+    <path d="M15,162 L58,162 C68,148 78,148 95,162 L108,183 L118,55 L130,198 L146,162 C163,138 187,138 202,162 L242,162 L285,162"
+      fill="none" stroke="url(#lg)" stroke-width="11"
+      stroke-linejoin="miter" stroke-linecap="round" opacity="0.22"/>
+    <!-- Main EKG line -->
+    <path d="M15,162 L58,162 C68,148 78,148 95,162 L108,183 L118,55 L130,198 L146,162 C163,138 187,138 202,162 L242,162 L285,162"
+      fill="none" stroke="url(#lg)" stroke-width="5"
+      stroke-linejoin="miter" stroke-linecap="round"/>
+  </g>
+  <!-- Subtle border -->
+  <rect width="300" height="300" rx="68" fill="none" stroke="#1C2245" stroke-width="1.5"/>
+</svg>

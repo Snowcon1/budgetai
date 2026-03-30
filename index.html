@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <style>
 :root{
   --w1:#3B82F6;--w2:#8B5CF6;--w3:#EC4899;--w4:#F97316;--w5:#F59E0B;
@@ -36,7 +37,7 @@ img{display:block;max-width:100%}
 /* LOADER */
 #loader{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .5s,visibility .5s}
 #loader.done{opacity:0;visibility:hidden}
-.ld-icon{width:44px;height:44px;border-radius:13px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 0 30px rgba(139,92,246,.6);animation:ldpulse 1.2s ease-in-out infinite}
+.ld-icon{width:44px;height:44px;display:block;animation:ldpulse 1.2s ease-in-out infinite}
 .ld-name{font-size:1.2rem;font-weight:700}
 .ld-bar{width:140px;height:3px;background:var(--s3);border-radius:99px;overflow:hidden}
 .ld-fill{height:100%;background:var(--grad);border-radius:99px;animation:ldfill 1.5s ease forwards}
@@ -54,7 +55,7 @@ img{display:block;max-width:100%}
 nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(15,23,42,.85);backdrop-filter:blur(24px);border-bottom:1px solid var(--b1);transition:box-shadow .3s}
 nav.scrolled{box-shadow:0 8px 32px rgba(0,0,0,.4)}
 .nav-logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
-.nav-logo-icon{width:32px;height:32px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:.85rem;box-shadow:0 0 18px rgba(139,92,246,.4)}
+.nav-logo-icon{width:32px;height:32px;display:block}
 nav ul{display:flex;gap:4px;list-style:none}
 nav ul a{color:var(--t2);font-size:.875rem;font-weight:450;padding:7px 14px;border-radius:8px;transition:color .2s,background .2s;display:block}
 nav ul a:hover{color:var(--t1);background:rgba(255,255,255,.05)}
@@ -503,7 +504,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 
 <div id="loader">
   <div style="display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700">
-    <div class="ld-icon">⚡</div><span>Pulse</span>
+    <img class="ld-icon" src="assets/logo.svg" alt="Pulse"><span>Pulse</span>
   </div>
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
@@ -519,7 +520,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 
 <div id="mob-menu" aria-modal="true" role="dialog">
   <div class="mob-top">
-    <div class="nav-logo"><div class="nav-logo-icon">⚡</div><span>Pulse</span></div>
+    <div class="nav-logo"><img class="nav-logo-icon" src="assets/logo.svg" alt="Pulse logo"><span>Pulse</span></div>
     <button id="mob-close" aria-label="Close menu">✕</button>
   </div>
   <nav class="mob-links">
@@ -534,7 +535,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 </div>
 
 <nav aria-label="Main navigation">
-  <div class="nav-logo"><div class="nav-logo-icon">⚡</div><span>Pulse</span></div>
+  <div class="nav-logo"><img class="nav-logo-icon" src="assets/logo.svg" alt="Pulse logo"><span>Pulse</span></div>
   <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#security">Security</a></li>
@@ -928,7 +929,7 @@ footer{padding:56px 48px 40px;border-top:1px solid var(--b1)}
 <!-- FOOTER -->
 <footer>
   <div class="foot-grid">
-    <div class="foot-brand"><div class="nav-logo"><div class="nav-logo-icon">⚡</div><span>Pulse</span></div><p>The first AI-powered budgeting app built for Gen Z. Money, but actually easy.</p></div>
+    <div class="foot-brand"><div class="nav-logo"><img class="nav-logo-icon" src="assets/logo.svg" alt="Pulse logo"><span>Pulse</span></div><p>The first AI-powered budgeting app built for Gen Z. Money, but actually easy.</p></div>
     <div class="foot-col"><h4>Product</h4><ul><li><a href="#features">Features</a></li><li><a href="#features">AI Coach</a></li><li><a href="#features">Receipt Scanning</a></li><li><a href="#premium">Premium</a></li><li><a href="#waitlist">Early Access</a></li></ul></div>
     <div class="foot-col"><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Blog</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li><li><a href="#">Contact</a></li></ul></div>
     <div class="foot-col"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li><li><a href="#">Cookie Policy</a></li><li><a href="#security">Security</a></li><li><a href="#">Accessibility</a></li></ul></div>
