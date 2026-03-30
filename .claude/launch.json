@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/expo/bin/cli", "start", "--web", "--port", "8082"],
       "port": 8082
+    },
+    {
+      "name": "Landing Page",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "const fs=require('fs'),path=require('path'),cwd=process.cwd();require('http').createServer((q,r)=>{let f=path.join(cwd,q.url==='/'?'index.html':q.url);try{const d=fs.readFileSync(f);const m={'html':'text/html','svg':'image/svg+xml','png':'image/png','js':'application/javascript','css':'text/css','ico':'image/x-icon'};const ext=f.split('.').pop();r.writeHead(200,{'Content-Type':m[ext]||'text/plain'});r.end(d);}catch(e){r.writeHead(404);r.end('not found');}}).listen(3456,()=>console.log('ready'))"],
+      "port": 3456
     }
   ]
 }

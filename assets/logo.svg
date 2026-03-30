@@ -1,56 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
   <defs>
     <clipPath id="c">
       <rect width="300" height="300" rx="68"/>
     </clipPath>
+
+    <!-- EKG line gradient: blue → indigo → violet → pink -->
     <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"  stop-color="#3B82F6" stop-opacity="0"/>
-      <stop offset="8%"  stop-color="#3B82F6"/>
-      <stop offset="40%" stop-color="#818CF8"/>
-      <stop offset="65%" stop-color="#C084FC"/>
-      <stop offset="90%" stop-color="#EC4899"/>
+      <stop offset="0%"   stop-color="#3B82F6" stop-opacity="0"/>
+      <stop offset="6%"   stop-color="#3B82F6"/>
+      <stop offset="38%"  stop-color="#818CF8"/>
+      <stop offset="62%"  stop-color="#A78BFA"/>
+      <stop offset="88%"  stop-color="#EC4899"/>
       <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="blm" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%"  stop-color="#3B82F6" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#818CF8" stop-opacity="0.28"/>
-      <stop offset="60%" stop-color="#C084FC" stop-opacity="0.28"/>
-      <stop offset="85%" stop-color="#EC4899" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
+
+    <!-- Floor bloom gradient -->
+    <linearGradient id="flr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#3B82F6"  stop-opacity="0"/>
+      <stop offset="18%"  stop-color="#4F46E5"  stop-opacity="0.85"/>
+      <stop offset="50%"  stop-color="#7C3AED"  stop-opacity="1"/>
+      <stop offset="82%"  stop-color="#EC4899"  stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#EC4899"  stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="bg1" cx="50%" cy="42%" r="55%">
-      <stop offset="0%"   stop-color="#1E1B4B" stop-opacity="0.4"/>
+
+    <!-- Large body glow behind line -->
+    <radialGradient id="bg1" cx="48%" cy="42%" r="54%">
+      <stop offset="0%"   stop-color="#2E1F72" stop-opacity="0.85"/>
+      <stop offset="55%"  stop-color="#1E1B4B" stop-opacity="0.45"/>
       <stop offset="100%" stop-color="#1E1B4B" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="bg2" cx="39%" cy="19%" r="28%">
-      <stop offset="0%"   stop-color="#7C3AED" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+
+    <!-- Tight spike bloom behind R-peak -->
+    <radialGradient id="bg2" cx="43%" cy="18%" r="30%">
+      <stop offset="0%"   stop-color="#6D28D9" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#6D28D9" stop-opacity="0"/>
     </radialGradient>
+
+    <!-- Corner vignette -->
     <radialGradient id="vig" cx="50%" cy="50%" r="72%">
       <stop offset="0%"   stop-color="#080A14" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#080A14" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#080A14" stop-opacity="0.92"/>
     </radialGradient>
+
+    <!-- Glow filter for EKG line (blur + merge keeps sharp line on top) -->
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Heavy blur for floor bloom pill -->
+    <filter id="bloomf" x="-30%" y="-200%" width="160%" height="500%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
   </defs>
+
   <g clip-path="url(#c)">
     <!-- Base dark navy -->
-    <rect width="300" height="300" fill="#0C0E1A"/>
-    <!-- Body glow -->
+    <rect width="300" height="300" fill="#090C18"/>
+
+    <!-- Large body glow -->
     <rect width="300" height="300" fill="url(#bg1)"/>
-    <!-- Spike bloom behind R-wave peak -->
+
+    <!-- Spike bloom -->
     <rect width="300" height="300" fill="url(#bg2)"/>
-    <!-- Corner vignette -->
+
+    <!-- Vignette -->
     <rect width="300" height="300" fill="url(#vig)"/>
-    <!-- Bloom cast beneath EKG line -->
-    <ellipse cx="150" cy="166" rx="90" ry="20" fill="url(#blm)"/>
-    <!-- Glow halo: same path, doubled width, low opacity -->
-    <path d="M15,162 L58,162 C68,148 78,148 95,162 L108,183 L118,55 L130,198 L146,162 C163,138 187,138 202,162 L242,162 L285,162"
-      fill="none" stroke="url(#lg)" stroke-width="11"
-      stroke-linejoin="miter" stroke-linecap="round" opacity="0.22"/>
-    <!-- Main EKG line -->
-    <path d="M15,162 L58,162 C68,148 78,148 95,162 L108,183 L118,55 L130,198 L146,162 C163,138 187,138 202,162 L242,162 L285,162"
-      fill="none" stroke="url(#lg)" stroke-width="5"
-      stroke-linejoin="miter" stroke-linecap="round"/>
+
+    <!-- Floor bloom: blurred pill beneath the EKG baseline -->
+    <ellipse cx="150" cy="188" rx="108" ry="18"
+      fill="url(#flr)" filter="url(#bloomf)" opacity="0.95"/>
+
+    <!-- EKG path — double P-wave humps, sharp QRS spike, double T-wave humps -->
+    <!--
+      Baseline y=163, spike R-peak (130,52), left of center
+      P-wave: two smooth bumps x=44–112
+      T-wave: two smooth bumps x=152–218
+    -->
+
+    <!-- Thick soft glow halo underneath -->
+    <path d="
+      M 12,163 L 44,163
+      C 51,153 57,148 63,152 C 69,156 73,163 78,163
+      C 85,153 91,148 97,152 C 103,156 107,163 112,163
+      L 119,179 L 130,52 L 141,197 L 152,163
+      C 159,145 165,140 171,145 C 177,150 181,163 186,163
+      C 193,145 199,140 205,145 C 211,150 215,163 218,163
+      L 248,163 L 288,163"
+      fill="none" stroke="url(#lg)" stroke-width="22"
+      stroke-linejoin="miter" stroke-linecap="round" opacity="0.20"/>
+
+    <!-- Main EKG line with glow filter -->
+    <path d="
+      M 12,163 L 44,163
+      C 51,153 57,148 63,152 C 69,156 73,163 78,163
+      C 85,153 91,148 97,152 C 103,156 107,163 112,163
+      L 119,179 L 130,52 L 141,197 L 152,163
+      C 159,145 165,140 171,145 C 177,150 181,163 186,163
+      C 193,145 199,140 205,145 C 211,150 215,163 218,163
+      L 248,163 L 288,163"
+      fill="none" stroke="url(#lg)" stroke-width="5.5"
+      stroke-linejoin="miter" stroke-linecap="round"
+      filter="url(#glow)"/>
   </g>
+
   <!-- Subtle border -->
   <rect width="300" height="300" rx="68" fill="none" stroke="#1C2245" stroke-width="1.5"/>
 </svg>
